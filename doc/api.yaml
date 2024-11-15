@@ -15,6 +15,15 @@ info:
 tags:
   - name: "login"
     description: tag for login session operation
+  - name: "user profile"
+    description: tag for user profile settings
+  - name: "chats"
+    description: tag for chats operations
+  - name: "groups"
+    description: tag for group management
+
+security:
+  - bearerAuth: []
 
 paths:
 
@@ -37,6 +46,10 @@ paths:
       responses:
         '200':
           description: User log-in action successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
         '201':
           description: User creation successful
           content:
@@ -52,6 +65,7 @@ paths:
       - $ref: '#/components/parameters/UserID'
 
     put:
+      tags: ["user profile"]
       summary: set a new username
       description: |
         Allows the user to set a new username for his account
@@ -80,6 +94,7 @@ paths:
       - $ref: '#/components/parameters/UserID'
 
     put:
+      tags: ["user profile"]
       summary: set a new photo
       description: |
         Allows the user to set a new photo for his account
@@ -87,7 +102,7 @@ paths:
       requestBody:
         description: the new photo
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/User/properties/photo'
         required: true
@@ -108,6 +123,7 @@ paths:
       - $ref: '#/components/parameters/UserID'
 
     get:
+      tags: ["user profile"]
       summary: get all conversations of the user
       description: |
         Retrieve all the conversations the user is in
@@ -127,10 +143,10 @@ paths:
 
   /conersations/{convID}/messages:
     parameters:
-      - $ref: '#/components/parameters/UserID'
       - $ref: '#/components/parameters/ConversationID'
 
     post:
+      tags: ["chats"]
       summary: send a new message
       description: |
         Send a new message in a conversation with a user or a group
@@ -159,6 +175,7 @@ paths:
       - $ref: '#/components/parameters/MessageID'
 
     delete:
+      tags: ["chats"]
       summary: delete a message in a chat
       description: |
         Delete a message in a conversation.
@@ -179,13 +196,12 @@ paths:
       - $ref: '#/components/parameters/MessageID'
 
     put:
+      tags: ["chats"]
       summary: react to a message
       description: |
         React to a message sent in a conversation,
         a user can only react one emoji per message
       operationId: commentMessage
-      parameters:
-        - $ref: '#/components/parameters/MessageID'
       requestBody:
         content:
           application/json:
@@ -207,12 +223,12 @@ paths:
 
   /conversations/{convID}/messages/{messID}/reactions/{reactID}:
     parameters:
-      - $ref: '#/components/parameters/UserID'
       - $ref: '#/components/parameters/ConversationID'
       - $ref: '#/components/parameters/MessageID'
       - $ref: '#/components/parameters/ReactionID'
 
     delete:
+      tags: ["chats"]
       summary: delete a reaction of a message
       description: |
         Delete a reaction from a message you have put before
@@ -230,6 +246,7 @@ paths:
       - $ref: '#/components/parameters/GroupID'
 
     put:
+      tags: ["groups"]
       summary: set a new group name
       description: |
         Change the current group name with another one
@@ -257,6 +274,7 @@ paths:
       - $ref: '#/components/parameters/GroupID'
 
     put:
+      tags: ["groups"]
       summary: set a new group photo
       description: |
         Update a new photo for the group
@@ -264,7 +282,7 @@ paths:
       requestBody:
         description: the new group photo
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/Group/properties/photo'
         required: true
@@ -285,6 +303,7 @@ paths:
       - $ref: '#/components/parameters/GroupID'
 
     post:
+      tags: ["groups"]
       summary: add a user to a group
       description: |
         Add a member to a group. It can leave anytime
@@ -313,6 +332,7 @@ paths:
       - $ref: '#/components/parameters/UserID'
 
     delete:
+      tags: ["groups"]
       summary: leave a group
       description: |
         Leave a group you are currently in.
@@ -328,6 +348,12 @@ paths:
 
 
 components:
+  securitySchemes:
+    bearerAuth: # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      description: authentication code mode
+
   responses:
     BadRequest:
       description: The request was not compliant with the documentation (eg. missing fields, etc).
@@ -407,6 +433,7 @@ components:
           type: integer
           example: 10
           readOnly: true
+          description: user ID
 
     Group:
       description: group schema
@@ -432,6 +459,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Message'
+          minItems: 0
           description: messages sent
 
     Message:
@@ -443,6 +471,7 @@ components:
         timestamp:
           type: string
           format: date-time
+          description: date and hour of the message
         sender:
           $ref: '#/components/schemas/User'
         photo:
@@ -458,8 +487,10 @@ components:
         reactions:
           type: array
           items:
-            $ref: '#/components/schemas/Reaction'
-          description: reactions of the message
+            $ref: '#/components/schemas/Reaction/properties/emoji'
+          minItems: 0
+          maxItems: 999
+          description: reactions ID of the message
 
     Conversation:
       description: conversation schema
@@ -471,6 +502,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Message'
+          minItems: 1
           description: messages sent
 
     Homepage:
@@ -481,11 +513,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Conversation'
+          minItems: 0
           description: conversations started
         groups:
           type: array
           items:
             $ref: '#/components/schemas/Group'
+          minItems: 0
           description: groups started
 
     Reaction:
@@ -494,23 +528,35 @@ components:
       properties:
         user:
           $ref: '#/components/schemas/User'
-        message:
-          $ref: '#/components/schemas/Message'
+        messageId:
+          type: integer
+          example: 1234
+          description: id of the message reacted
+          readOnly: true
         emoji:
           type: string
           example: "☺️"
+          minLength: 1
+          maxLength: 1
+          pattern: '^[\u{1F600}-\u{1F64F}]$'
           description: reacted emoji
 
     Text:
+      description: message text
       type: string
       example: This is a message!
+      pattern: '^.*?$'
       minLength: 1
       maxLength: 250
-      description: message text
 
     Notification:
+      description: notification sent to the user
       type: object
       properties:
-        message:
+        report:
           type: string
+          pattern: '^.*?$'
+          minLength: 1
+          maxLength: 250
           example: "Resource updated successfully"
+          description: notify user of the operation result
