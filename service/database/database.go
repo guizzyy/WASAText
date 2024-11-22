@@ -36,11 +36,15 @@ import (
 	"fmt"
 )
 
+type dUser struct {
+	username string
+	photo    string
+	id       uint64
+}
+
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
-	GetName() (string, error)
-	SetName(name string) error
-
+	LogUser(dUser) (dUser, error)
 	Ping() error
 }
 
@@ -59,8 +63,13 @@ func New(db *sql.DB) (AppDatabase, error) {
 	var tableName string
 	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
 	if errors.Is(err, sql.ErrNoRows) {
-		sqlStmt := `CREATE TABLE example_table (id INTEGER NOT NULL PRIMARY KEY, name TEXT);`
-		_, err = db.Exec(sqlStmt)
+
+		userTable := `CREATE TABLE users (
+    		id INTEGER NOT NULL PRIMARY KEY, 
+    		username VARCHAR(16) NOT NULL,
+    		photo VARCHAR(255) DEFAULT NULL);`
+
+		_, err = db.Exec(userTable)
 		if err != nil {
 			return nil, fmt.Errorf("error creating database structure: %w", err)
 		}
@@ -70,6 +79,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 		c: db,
 	}, nil
 }
+
+var ErrUserNotFound = errors.New("User not found")
 
 func (db *appdbimpl) Ping() error {
 	return db.c.Ping()
