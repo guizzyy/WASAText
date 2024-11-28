@@ -141,7 +141,29 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
-  /conersations/{convID}/messages:
+  /conversations/{convID}/:
+    parameters:
+      - $ref: '#/components/parameters/ConversationID'
+
+    get:
+      tags: ["chats"]
+      summary: get a conversation with a user or group
+      description: |
+        Retrieve a conversation with a user or a group
+      operationId: getConversation
+      responses:
+        '200':
+          description: chat loaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+  /conversations/{convID}/messages:
     parameters:
       - $ref: '#/components/parameters/ConversationID'
 
@@ -169,10 +191,36 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
-  /conersations/{convID}/messages/{messID}:
+  /conversations/{convID}/messages/{messID}/:
     parameters:
       - $ref: '#/components/parameters/ConversationID'
       - $ref: '#/components/parameters/MessageID'
+
+
+    post:
+      tags: ["chats"]
+      summary: forward an existing message to a chat
+      description: |
+        Take an existing message from a conversation
+        and forward it to another one (same one as well)
+      operationId: forwardMessage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      responses:
+        '200':
+          description: message forwarded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
 
     delete:
       tags: ["chats"]
@@ -547,20 +595,20 @@ components:
           readOnly: true
         emoji:
           type: string
-          example: "☺️"
+          example: 😀
           minLength: 1
           maxLength: 4
           pattern: >
-            ^([\u1F600-\u1F64F]|                # Emoticons
-              [\u1F300-\u1F5FF]|                # Misc Symbols and Pictographs
-              [\u1F680-\u1F6FF]|                # Transport and Map Symbols
-              [\u2600-\u26FF]|                  # Miscellaneous Symbols
-              [\u2700-\u27BF]|                  # Dingbats
-              [\u1F900-\u1F9FF]|                # Supplemental Symbols and Pictographs
-              [\u1FA70-\u1FAFF]|                # Extended Pictographs
-              [\u1F1E6-\u1F1FF]{2}|             # Regional Indicator Pairs (Flags)
-              [\u1F468\u1F469](\u200D[\u1F466-\u1F469\u1F37C])*| # Family/Profession with ZWJ
-              [\u2600-\u27BF]\uFE0F?)$          # Variation Selector
+            ^([\u1F600-\u1F64F]|                
+              [\u1F300-\u1F5FF]|                
+              [\u1F680-\u1F6FF]|                
+              [\u2600-\u26FF]|                  
+              [\u2700-\u27BF]|                  
+              [\u1F900-\u1F9FF]|                
+              [\u1FA70-\u1FAFF]|                
+              [\u1F1E6-\u1F1FF]{2}|             
+              [\u1F468\u1F469](\u200D[\u1F466-\u1F469\u1F37C])*| 
+              [\u2600-\u27BF]\uFE0F?)$
           description: reacted emoji
 
     Text:
