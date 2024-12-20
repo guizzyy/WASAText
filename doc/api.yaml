@@ -487,6 +487,11 @@ components:
       description: group schema
       type: object
       properties:
+        id:
+          type: integer
+          example: 11
+          readOnly: true
+          description: group ID
         name:
           type: string
           example: Class
@@ -519,6 +524,11 @@ components:
       description: message schema
       type: object
       properties:
+        id:
+          type: integer
+          example: 12
+          readOnly: true
+          description: message ID
         text:
           $ref: '#/components/schemas/Text'
         timestamp:
@@ -617,12 +627,15 @@ components:
       example: This is a message!
       pattern: '^.*?$'
       minLength: 1
-      maxLength: 250
+      maxLength: 255
 
     Notification:
       description: notification sent to the user
       type: object
       properties:
+        outcome:
+          type: boolean
+          description: operation result
         report:
           type: string
           pattern: '^.*?$'
