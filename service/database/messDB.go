@@ -1,8 +1,10 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func (db *appdbimpl) AddMessage(text string, convId uint64, senderId uint64, receiverId uint64) error {
+func (db *appdbimpl) AddMessage(text string, convId uint64, senderId uint64) error {
 	res, err := db.c.Exec(`INSERT INTO messages (text, conv_id, sender_id) VALUES (?, ?, ?)`, text, convId, senderId)
 	if err != nil {
 		return fmt.Errorf("error adding message to database: %v", err)
@@ -34,9 +36,5 @@ func (db *appdbimpl) ForwardMessage(messId uint64, receiverId uint64) error {
 	if rows == nil {
 		return fmt.Errorf("could not find message to forward to")
 	}
-
-	if err := db.AddMessage(text, convId, senderId, receiverId); err != nil {
-		return fmt.Errorf("error forwarding message to database: %v", err)
-	}
-	return nil
+	// TO DO: CONTINUE
 }

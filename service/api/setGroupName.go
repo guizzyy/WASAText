@@ -5,10 +5,11 @@ import (
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
+	"strconv"
 )
 
-func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
-	isAuth, id, err := rt.checkToken(r)
+func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
 		http.Error(w, "Error checking the token", http.StatusUnauthorized)
 		return
@@ -18,26 +19,29 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
-	var newPhoto Photo
-	if err := json.NewDecoder(r.Body).Decode(&newPhoto); err != nil {
+	var newUsername string
+	if err := json.NewDecoder(r.Body).Decode(&newUsername); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+	group_id, err := strconv.ParseUint(params.ByName("grID"), 10, 64)
+	if err != nil {
+		http.Error(w, "Error parsing group id", http.StatusBadRequest)
+		return
+	}
 
-	// TO DO: ADD THE HANDLING FOR THE PHOTO IN THE DIRECTORY
-
-	if err = rt.db.SetPhoto(newPhoto.Photo, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := rt.db.SetGroupName(newUsername, group_id); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
 	response := Notification{
 		Outcome:   true,
-		Report:    "Profile photo updated successfully",
+		Report:    "Group name updated successfully",
 		ErrorCode: 0,
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
+	w.WriteHeader(http.StatusOK)
+
 }

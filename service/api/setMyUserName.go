@@ -43,6 +43,8 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		ErrorCode: 0,
 	}
 	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
 }

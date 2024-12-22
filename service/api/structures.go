@@ -15,6 +15,11 @@ type Photo struct {
 	Photo string `json:"photo"`
 }
 
+type Message struct {
+	Text   string `json:"text"`
+	Sender uint64 `json:"sender"`
+}
+
 type Notification struct {
 	Outcome   bool   `json:"outcome"`
 	Report    string `json:"report"`

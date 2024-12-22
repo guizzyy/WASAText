@@ -48,6 +48,22 @@ type AppDatabase interface {
 	SetUsername(string, uint64) error
 	SetPhoto(string, uint64) error
 
+	SetGroupName(string, uint64) error
+	SetGroupPhoto(uint64, string) error
+	AddMembership(uint64, uint64) error
+	RemoveMembership(uint64, uint64) error
+
+	GetConversations(uint64) ([]uint64, error)
+	GetConversation(uint64) (uint64, error)
+	GetReceiver(uint64) (uint64, error)
+
+	AddMessage(string, uint64, uint64) error
+	RemoveMessage(uint64) error
+	ForwardMessage(uint64, uint64) error
+
+	AddReaction(string, uint64, uint64) error
+	RemoveReaction(uint64, uint64) error
+
 	Ping() error
 	IsInDatabase(uint64) (bool, error)
 }
