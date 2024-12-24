@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
+	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
@@ -19,7 +20,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	var photo Photo
+	var photo utilities.Photo
 	if err = json.NewDecoder(r.Body).Decode(&photo); err != nil {
 		http.Error(w, "error decoding the photo", http.StatusBadRequest)
 		return
@@ -35,7 +36,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	response := Notification{
+	response := utilities.Notification{
 		Outcome:   true,
 		Report:    "Group photo updated successfully",
 		ErrorCode: 0,

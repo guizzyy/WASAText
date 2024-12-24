@@ -34,17 +34,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"git.guizzyy.it/WASAText/service/utilities"
 )
-
-type DUser struct {
-	Username string
-	Photo    string
-	Id       uint64
-}
 
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
-	LogUser(string) (DUser, error)
+	LogUser(*utilities.User) (bool, error)
 	SetUsername(string, uint64) error
 	SetPhoto(string, uint64) error
 
@@ -55,7 +50,7 @@ type AppDatabase interface {
 
 	GetConversations(uint64) ([]uint64, error)
 	GetConversation(uint64) (uint64, error)
-	GetReceiver(uint64) (uint64, error)
+	GetConvInfos(*uint64)
 
 	AddMessage(string, uint64, uint64) error
 	RemoveMessage(uint64) error
@@ -87,12 +82,12 @@ func New(db *sql.DB) (AppDatabase, error) {
 		tables := map[string]string{
 			"users": `CREATE TABLE users (
     		id INTEGER PRIMARY KEY, 
-    		name VARCHAR(16) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
+    		name VARCHAR(16) UNIQUE NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
     		photo TEXT DEFAULT NULL)`,
 
 			"groups": `CREATE TABLE groups (
     		id INTEGER PRIMARY KEY,
-    		name VARCHAR(16) CHECK ( length(name) >= 3 AND length(name) <= 16 ),
+    		name VARCHAR(16) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
     		photo TEXT DEFAULT NULL)`,
 
 			"membership": `CREATE TABLE membership (
@@ -101,7 +96,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		timestamp_in TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		timestamp_out TIMESTAMP DEFAULT NULL,               
     		FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
-    		FOREIGN KEY (user_id) REFERENCES users(id),
+    		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     		PRIMARY KEY (group_id, user_id))`,
 
 			"conversations": `CREATE TABLE conversations (
@@ -123,7 +118,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		FOREIGN KEY (conv_id) REFERENCES conversations(id),
     		FOREIGN KEY (sender_id) REFERENCES users(id))`,
 
-			"reacts_messages": `CREATE TABLE reacts_messages (
+			"reactions": `CREATE TABLE reactions (
     		reaction TEXT NOT NULL,
     		mess_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
@@ -158,6 +153,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 }
 
 var ErrUserNotFound = errors.New("User not found")
+var ErrGroupNotFound = errors.New("Group not found")
 
 func (db *appdbimpl) Ping() error {
 	return db.c.Ping()

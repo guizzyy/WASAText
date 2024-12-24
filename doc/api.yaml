@@ -3,7 +3,7 @@ info:
   title: WASAText
   # TO DO: CHANGE THE DESCRIPTION
   description: |-
-    This OpenAPI document describes the application of a software which allows peolple to stay in touch with other users of the system.
+    This OpenAPI document describes the application of a software which allows people to stay in touch with other users of the system.
     With the inspiration of `WhatsApp`, this app goals is to create an
     open-source one with less security in it
   version: "1"
@@ -21,6 +21,8 @@ tags:
     description: tag for chats operations
   - name: "groups"
     description: tag for group management
+  - name: "user action"
+    description: tag for user actions
 
 security:
   - bearerAuth: []
@@ -41,7 +43,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User/properties/username'
+              $ref: '#/components/schemas/User'
         required: true
       responses:
         '200':
@@ -49,7 +51,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Notification'
+                $ref: '#/components/schemas/User'
         '201':
           description: User creation successful
           content:
@@ -141,6 +143,62 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
+    post:
+      tags: ["user action"]
+      summary: start a conversation with a user
+      description: |
+        With a given user, you can start a new conversation with him
+        and this will be saved in your home along with the others already
+        started
+      operationId: startConversation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        '201':
+          description: Conversation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+  /users/{uID}/search:
+    parameters:
+      - $ref: '#/components/parameters/UserID'
+
+    get:
+      tags: ["user action"]
+      summary: search users by their username
+      description: |
+        Get a list of all possible users with names that match
+        with the written username in the query
+      operationId: getUser
+      parameters:
+        - name: Username
+          in: query
+          required: true
+          description: the username wanted
+          schema:
+            $ref: '#/components/schemas/Username'
+      responses:
+        '200':
+          description: user found successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
   /conversations/{convID}/:
     parameters:
       - $ref: '#/components/parameters/ConversationID'
@@ -208,7 +266,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Message'
+              $ref: '#/components/schemas/Conversation'
         required: true
       responses:
         '200':
@@ -287,7 +345,35 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
-  /groups/{grID}:
+  /groups:
+
+    post:
+      tags: ["user action"]
+      summary: create a new group
+      description: |
+        Create a new group with a name and an optional photo,
+        the founder can add whoever he likes from all the users in the
+        application
+      operationId: createGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+        required: true
+      responses:
+        '201':
+          description: group created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+  /groups/{grID}/name:
     parameters:
       - $ref: '#/components/parameters/GroupID'
 
@@ -505,20 +591,6 @@ components:
           minLength: 1
           maxLength: 999
           description: group photo
-        users:
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
-          minItems: 1
-          maxItems: 999
-          description: list users in group
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/Message'
-          minItems: 0
-          maxItems: 999
-          description: messages sent
 
     Message:
       description: message schema
@@ -621,21 +693,33 @@ components:
               [\u2600-\u27BF]\uFE0F?)$
           description: reacted emoji
 
+    Username:
+      description: Username schema
+      type: object
+      properties:
+        name:
+          type: string
+          example: Pippo
+          pattern: '^.*?$'
+          minLength: 3
+          maxLength: 16
+          description: name of the user wanted
+
     Text:
       description: message text
-      type: string
-      example: This is a message!
-      pattern: '^.*?$'
-      minLength: 1
-      maxLength: 255
+      type: object
+      properties:
+        text:
+          type: string
+          example: This is a message!
+          pattern: '^.*?$'
+          minLength: 1
+          maxLength: 255
 
     Notification:
       description: notification sent to the user
       type: object
       properties:
-        outcome:
-          type: boolean
-          description: operation result
         report:
           type: string
           pattern: '^.*?$'

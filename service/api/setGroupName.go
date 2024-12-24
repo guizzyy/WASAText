@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
+	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
@@ -22,6 +23,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 	var newUsername string
 	if err := json.NewDecoder(r.Body).Decode(&newUsername); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	group_id, err := strconv.ParseUint(params.ByName("grID"), 10, 64)
 	if err != nil {
@@ -29,11 +31,15 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
+	if check, err := rt.checkStringFormat(newUsername); err != nil || !check {
+		http.Error(w, "Failed group name format validation", http.StatusBadRequest)
+		return
+	}
 	if err := rt.db.SetGroupName(newUsername, group_id); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
-	response := Notification{
+	response := utilities.Notification{
 		Outcome:   true,
 		Report:    "Group name updated successfully",
 		ErrorCode: 0,

@@ -3,8 +3,12 @@ package api
 import (
 	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
+	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
@@ -18,21 +22,38 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
-	var newPhoto Photo
-	if err := json.NewDecoder(r.Body).Decode(&newPhoto); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		http.Error(w, "Error parsing multipart form", http.StatusBadRequest)
+		return
 	}
 
-	// TO DO: ADD THE HANDLING FOR THE PHOTO IN THE DIRECTORY
+	file, handler, err := r.FormFile("photo")
+	if err != nil {
+		http.Error(w, "Error getting file from form", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
 
-	if err = rt.db.SetPhoto(newPhoto.Photo, id); err != nil {
+	filePath := filepath.Join("photos", handler.Filename)
+	fileLocal, err := os.Create(filePath)
+	if err != nil {
+		http.Error(w, "Error creating file", http.StatusInternalServerError)
+		return
+	}
+	defer fileLocal.Close()
+	_, err = io.Copy(fileLocal, file)
+	if err != nil {
+		http.Error(w, "Error creating file", http.StatusInternalServerError)
+		return
+	}
+
+	if err = rt.db.SetPhoto(filePath, id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	response := Notification{
-		Outcome:   true,
-		Report:    "Profile photo updated successfully",
-		ErrorCode: 0,
+	response := utilities.Notification{
+		Report: "Profile photo updated successfully",
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

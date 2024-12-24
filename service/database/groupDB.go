@@ -1,12 +1,11 @@
 package database
 
 import (
-	"errors"
 	"fmt"
 )
 
 func (db *appdbimpl) SetGroupName(groupName string, groupId uint64) error {
-	res, err := db.c.Exec(`UPDATE groups SET groupName = ? WHERE groupId = ?`, groupName, groupId)
+	res, err := db.c.Exec(`UPDATE groups SET name = ? WHERE id = ?`, groupName, groupId)
 	if err != nil {
 		return fmt.Errorf("error updating group name: %v", err)
 	}
@@ -15,13 +14,13 @@ func (db *appdbimpl) SetGroupName(groupName string, groupId uint64) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("group does not exist")
+		return ErrGroupNotFound
 	}
 	return nil
 }
 
 func (db *appdbimpl) SetGroupPhoto(groupId uint64, photo string) error {
-	res, err := db.c.Exec(`UPDATE groups SET photo = ? WHERE groupId = ?`, photo, groupId)
+	res, err := db.c.Exec(`UPDATE groups SET photo = ? WHERE id = ?`, photo, groupId)
 	if err != nil {
 		return fmt.Errorf("error updating group photo: %v", err)
 	}
@@ -30,13 +29,13 @@ func (db *appdbimpl) SetGroupPhoto(groupId uint64, photo string) error {
 		return err
 	}
 	if rows == 0 {
-		return errors.New("group does not exist")
+		return ErrGroupNotFound
 	}
 	return nil
 }
 
 func (db *appdbimpl) AddMembership(userId uint64, groupId uint64) error {
-	_, err := db.c.Exec(`INSERT INTO memberships (groupId, userId) VALUES (?, ?)`, groupId, userId)
+	_, err := db.c.Exec(`INSERT INTO membership(group_id, user_id) VALUES (?, ?)`, groupId, userId)
 	if err != nil {
 		return fmt.Errorf("error adding membership: %v", err)
 	}
@@ -44,7 +43,7 @@ func (db *appdbimpl) AddMembership(userId uint64, groupId uint64) error {
 }
 
 func (db *appdbimpl) RemoveMembership(userId uint64, groupId uint64) error {
-	_, err := db.c.Exec(`DELETE FROM memberships WHERE groupId = ? AND userId = ?`, groupId, userId)
+	_, err := db.c.Exec(`DELETE FROM membership WHERE group_id = ? AND user_id = ?`, groupId, userId)
 	if err != nil {
 		return fmt.Errorf("error removing membership: %v", err)
 	}

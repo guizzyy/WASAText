@@ -1,15 +1,12 @@
 package api
 
 import (
-	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
-	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
-	"strconv"
 )
 
-func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		http.Error(w, "Error checking the token", http.StatusUnauthorized)
@@ -19,5 +16,11 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params
 		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
 		return
 	}
-	// TO DO: FINISH DATABASE FUNCTION
+
+	convIDs, err := rt.db.GetConversations(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 }
