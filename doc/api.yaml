@@ -77,7 +77,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User/properties/username'
+              $ref: '#/components/schemas/Username'
         required: true
       responses:
         '200':

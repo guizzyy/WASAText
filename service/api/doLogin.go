@@ -9,19 +9,24 @@ import (
 )
 
 func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	// Get the username for log in the request body
 	var userLog utilities.User
-
 	if err := json.NewDecoder(r.Body).Decode(&userLog); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	pUser := &userLog
 
-	if check, err := rt.checkStringFormat(userLog.Username); err != nil || !check {
-		http.Error(w, "Failed username format validation", http.StatusBadRequest)
+	// Check if the username provided has the correct format
+	if check, err := rt.checkStringFormat(userLog.Username); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	} else if !check {
+		http.Error(w, "Username invalid", http.StatusBadRequest)
 		return
 	}
 
+	// Ask the database if it is a new/existing user and get their ID and photo
 	isNew, err := rt.db.LogUser(pUser)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -34,6 +39,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 
 	w.Header().Set("Content-Type", "application/json")
 	if !isNew {
+		// The user is new
 		w.WriteHeader(http.StatusOK)
 		response.Message = "Login successful"
 		if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -41,6 +47,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 			return
 		}
 	} else {
+		// The user already exists
 		w.WriteHeader(http.StatusCreated)
 		response.Message = "User created successfully"
 		if err := json.NewEncoder(w).Encode(response); err != nil {

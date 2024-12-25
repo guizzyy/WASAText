@@ -13,16 +13,8 @@ type User struct {
 	Photo    string `json:"photo"`
 }
 
-type Username struct {
-	Name string `json:"username"`
-}
-
 type ID struct {
 	ID string `json:"id"`
-}
-
-type Photo struct {
-	Photo []byte `json:"photo"`
 }
 
 type Message struct {

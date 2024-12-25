@@ -10,6 +10,7 @@ import (
 )
 
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	// Get the authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		http.Error(w, "Error checking the token", http.StatusUnauthorized)
@@ -20,13 +21,16 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	var newUsername utilities.Username
-	if err := json.NewDecoder(r.Body).Decode(&newUsername); err != nil {
+	// Get the new username wanted form the request body
+	var user utilities.User
+	user.ID = id
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if check, err := rt.checkStringFormat(newUsername.Name); err != nil {
+	// Check if the username provided has the correct format
+	if check, err := rt.checkStringFormat(user.Username); err != nil {
 		http.Error(w, "Error while checking the username", http.StatusInternalServerError)
 		return
 	} else if !check {
@@ -34,11 +38,13 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	if err = rt.db.SetUsername(newUsername.Name, id); err != nil {
+	// Set the new username in the database
+	if err = rt.db.SetUsername(user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Send the client a notification for the success of the operation
 	response := utilities.Notification{
 		Report: "Username updated successfully",
 	}

@@ -27,8 +27,8 @@ func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
 	return false, nil
 }
 
-func (db *appdbimpl) SetUsername(newName string, id uint64) error {
-	res, err := db.c.Exec(`UPDATE users SET name = ? WHERE id = ?`, newName, id)
+func (db *appdbimpl) SetUsername(u utilities.User) error {
+	res, err := db.c.Exec(`UPDATE users SET name = ? WHERE id = ?`, u.Username, u.ID)
 	if err != nil {
 		return err
 	}
@@ -42,8 +42,8 @@ func (db *appdbimpl) SetUsername(newName string, id uint64) error {
 	return nil
 }
 
-func (db *appdbimpl) SetPhoto(photo string, id uint64) error {
-	res, err := db.c.Exec(`UPDATE users SET photo = ? WHERE id = ?`, photo, id)
+func (db *appdbimpl) SetPhoto(u utilities.User) error {
+	res, err := db.c.Exec(`UPDATE users SET photo = ? WHERE id = ?`, u.Photo, u.ID)
 	if err != nil {
 		return err
 	}

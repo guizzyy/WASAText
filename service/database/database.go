@@ -40,8 +40,8 @@ import (
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
 	LogUser(*utilities.User) (bool, error)
-	SetUsername(string, uint64) error
-	SetPhoto(string, uint64) error
+	SetUsername(utilities.User) error
+	SetPhoto(utilities.User) error
 
 	SetGroupName(string, uint64) error
 	SetGroupPhoto(uint64, string) error
@@ -50,7 +50,6 @@ type AppDatabase interface {
 
 	GetConversations(uint64) ([]uint64, error)
 	GetConversation(uint64) (uint64, error)
-	GetConvInfos(*uint64)
 
 	AddMessage(string, uint64, uint64) error
 	RemoveMessage(uint64) error
@@ -74,69 +73,60 @@ func New(db *sql.DB) (AppDatabase, error) {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
+	// Enable foreign keys in the database
+	_, errFK := db.Exec("PRAGMA foreign_keys = ON;")
+	if errFK != nil {
+		return &appdbimpl{}, errFK
+	}
+
 	// Check if table exists. If not, the database is empty, and we need to create the structure
 	var tableName string
 	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
 	if errors.Is(err, sql.ErrNoRows) {
 
 		tables := map[string]string{
-			"users": `CREATE TABLE users (
+			"user": `CREATE TABLE user (
     		id INTEGER PRIMARY KEY, 
     		name VARCHAR(16) UNIQUE NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
     		photo TEXT DEFAULT NULL)`,
 
-			"groups": `CREATE TABLE groups (
+			"conversation": `CREATE TABLE conversation (
     		id INTEGER PRIMARY KEY,
-    		name VARCHAR(16) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
-    		photo TEXT DEFAULT NULL)`,
+    		type TEXT CHECK ( type IN ('private', 'group') ),
+    		name VARCHAR(25) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 25 ))`,
 
 			"membership": `CREATE TABLE membership (
-    		group_id INTEGER NOT NULL,
+    		conv_id INTEGER NOT NULL,
     		user_id INTEGER NOT NULL,
-    		timestamp_in TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    		timestamp_out TIMESTAMP DEFAULT NULL,               
-    		FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
-    		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    		PRIMARY KEY (group_id, user_id))`,
+    		UNIQUE (conv_id, user_id),
+    		FOREIGN KEY (conv_id) REFERENCES conversation(id),
+    		FOREIGN KEY (user_id) REFERENCES user(id))`,
 
-			"conversations": `CREATE TABLE conversations (
+			"message": `CREATE TABLE message (
     		id INTEGER PRIMARY KEY,
-    		type TEXT CHECK ( type IN ('Private', 'Group') ),
-    		user1_id INTEGER NOT NULL,
-    		user2_id INTEGER,
-    		group_id INTEGER,
-    		FOREIGN KEY (user1_id) REFERENCES users(id),
-    		FOREIGN KEY (user2_id) REFERENCES users(id),
-    		FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE)`,
-
-			"messages": `CREATE TABLE messages (
-    		id INTEGER PRIMARY KEY,
-    		text TEXT NOT NULL,
+    		text VARCHAR(250) NOT NULL CHECK ( length(text) > 0 AND length(text) <= 250 ),
     		conv_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		FOREIGN KEY (conv_id) REFERENCES conversations(id),
     		FOREIGN KEY (sender_id) REFERENCES users(id))`,
 
+			"status": `CREATE TABLE status (
+    		receiver_id INTEGER NOT NULL,
+    		mess_id INTEGER NOT NULL,
+    		info TEXT CHECK ( info IN ('read', 'received') ),
+    		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
+    		FOREIGN KEY (receiver_id) REFERENCES users(id),
+    		PRIMARY KEY (mess_id, receiver_id))`,
+
 			"reactions": `CREATE TABLE reactions (
+    		id INTEGER PRIMARY KEY,
     		reaction TEXT NOT NULL,
     		mess_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
-    		FOREIGN KEY (sender_id) REFERENCES users(id),
-    		PRIMARY KEY (mess_id, sender_id))`,
-
-			"status_messages": `CREATE TABLE status_messages (
-    		mess_id INTEGER NOT NULL,
-    		receiver_id INTEGER NOT NULL,
-    		is_received BOOLEAN NOT NULL DEFAULT 0,
-    		is_read BOOLEAN NOT NULL DEFAULT 0,
-    		timestamp_received TIMESTAMP DEFAULT NULL,
-    		timestamp_read TIMESTAMP DEFAULT NULL,
-    		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
-    		FOREIGN KEY (receiver_id) REFERENCES users(id),
-    		PRIMARY KEY (mess_id, receiver_id))`,
+    		FOREIGN KEY (sender_id) REFERENCES users(id))`,
 		}
 
 		for table, query := range tables {
