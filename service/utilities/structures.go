@@ -1,10 +1,19 @@
 package utilities
 
+import "time"
+
 type messStatus string
 
 const (
 	StatusReceived messStatus = "Received"
 	StatusRead     messStatus = "Read"
+)
+
+type convType string
+
+const (
+	Private convType = "private"
+	Group   convType = "group"
 )
 
 type User struct {
@@ -18,8 +27,10 @@ type ID struct {
 }
 
 type Message struct {
-	Text   string `json:"text"`
-	Sender uint64 `json:"sender"`
+	Text      string     `json:"text"`
+	Sender    uint64     `json:"sender"`
+	Timestamp time.Time  `json:"timestamp"`
+	Status    messStatus `json:"status"`
 }
 
 type Notification struct {
@@ -27,9 +38,10 @@ type Notification struct {
 }
 
 type Conversation struct {
-	ConvID uint64 `json:"id"`
-	Name   string `json:"name"`
-	Photo  string `json:"photo"`
+	ID    uint64   `json:"id"`
+	Type  convType `json:"type"`
+	Name  string   `json:"name"`
+	Photo string   `json:"photo"`
 }
 
 type LoginResponse struct {

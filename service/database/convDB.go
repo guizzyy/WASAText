@@ -1,33 +1,40 @@
 package database
 
-func (db *appdbimpl) GetConversations(uID uint64) ([]uint64, error) {
-	rows, err := db.c.Query("SELECT id FROM conversations WHERE user1_id = ? OR user2_id = ? UNION SELECT id FROM conversations JOIN membership on conversations.group_id = membership.group_id WHERE membership.user_id = ?", uID, uID, uID)
+import (
+	"fmt"
+	"git.guizzyy.it/WASAText/service/utilities"
+)
+
+func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, error) {
+	// TODO: change the query in order to get last message and ordered it (also manage the status)
+
+	// Select the conv infos where the user participates
+	rows, err := db.c.Query(`SELECT (conversation.id, type, name, photo) FROM message INNER JOIN conversation INNER JOIN memberships ON conversation.id = memberships.conv_id = message.conv_id WHERE user_id = ?`, uID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in getting conversations info: %w", err)
 	}
 	defer rows.Close()
 
-	var convIDs []uint64
+	// Create an array of conversation structs to return and scan the rows
+	convs := make([]utilities.Conversation, 0)
 	for rows.Next() {
-		var convID uint64
-		if err := rows.Scan(&convID); err != nil {
-			return nil, err
+		var conv utilities.Conversation
+		if err := rows.Scan(&conv.ID, &conv.Type, &conv.Name, &conv.Photo); err != nil {
+			return nil, fmt.Errorf("error in scanning conversation info: %w", err)
 		}
-		convIDs = append(convIDs, convID)
+		convs = append(convs, conv)
 	}
 
+	// Check errors during the scan, otherwise return the array
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error in rows: %w", err)
 	}
-	return convIDs, nil
+	return convs, nil
 }
 
-func (db *appdbimpl) GetConversation(convID uint64) (uint64, error) {
-	return 0, nil
-}
-
-func (db *appdbimpl) GetConvInfos(convIDs []uint64) ([]uint64, error) {
-	return nil, nil
+func (db *appdbimpl) GetConversation(convID uint64) ([]utilities.Message, error) {
+	// TODO: find a way to manage the status of the message situation
+	rows, err := db.c.Query(`SELECT id, text, sender_id, timestamp FROM message WHERE conv_id = ?`, convID)
 }
 
 /*

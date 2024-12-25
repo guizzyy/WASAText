@@ -43,7 +43,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/Username'
         required: true
       responses:
         '200':
@@ -106,7 +106,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/User/properties/photo'
+              $ref: '#/components/schemas/Photo'
         required: true
       responses:
         '200':
@@ -155,7 +155,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/Username'
         required: true
       responses:
         '201':
@@ -179,9 +179,9 @@ paths:
       description: |
         Get a list of all possible users with names that match
         with the written username in the query
-      operationId: getUser
+      operationId: searchUsers
       parameters:
-        - name: Username
+        - name: username
           in: query
           required: true
           description: the username wanted
@@ -193,7 +193,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/List-of-User'
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -656,13 +656,6 @@ components:
           minItems: 0
           maxItems: 999
           description: conversations started
-        groups:
-          type: array
-          items:
-            $ref: '#/components/schemas/Group'
-          minItems: 0
-          maxItems: 999
-          description: groups started
 
     Reaction:
       description: reaction schema
@@ -704,6 +697,26 @@ components:
           minLength: 3
           maxLength: 16
           description: name of the user wanted
+
+    List-of-User:
+      description: List of users schema
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+          minItems: 0
+          maxItems: 999
+          description: users found
+
+    Photo:
+      description: Photo schema
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
 
     Text:
       description: message text

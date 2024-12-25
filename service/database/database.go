@@ -42,14 +42,15 @@ type AppDatabase interface {
 	LogUser(*utilities.User) (bool, error)
 	SetUsername(utilities.User) error
 	SetPhoto(utilities.User) error
+	GetUsers(string, uint64) ([]utilities.User, error)
 
 	SetGroupName(string, uint64) error
 	SetGroupPhoto(uint64, string) error
 	AddMembership(uint64, uint64) error
 	RemoveMembership(uint64, uint64) error
 
-	GetConversations(uint64) ([]uint64, error)
-	GetConversation(uint64) (uint64, error)
+	GetConversations(uint64) ([]utilities.Conversation, error)
+	GetConversation(uint64) ([]utilities.Message, error)
 
 	AddMessage(string, uint64, uint64) error
 	RemoveMessage(uint64) error
@@ -120,11 +121,11 @@ func New(db *sql.DB) (AppDatabase, error) {
     		PRIMARY KEY (mess_id, receiver_id))`,
 
 			"reactions": `CREATE TABLE reactions (
-    		id INTEGER PRIMARY KEY,
     		reaction TEXT NOT NULL,
     		mess_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    		PRIMARY KEY (mess_id, sender_id, reaction),
     		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
     		FOREIGN KEY (sender_id) REFERENCES users(id))`,
 		}
