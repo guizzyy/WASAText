@@ -1,6 +1,8 @@
 package database
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"git.guizzyy.it/WASAText/service/utilities"
 )
@@ -37,13 +39,13 @@ func (db *appdbimpl) GetConversation(convID uint64) ([]utilities.Message, error)
 	rows, err := db.c.Query(`SELECT id, text, sender_id, timestamp FROM message WHERE conv_id = ?`, convID)
 }
 
-/*
-func (db *appdbimpl) GetReceiver(convID uint64) (uint64, error) {
+func (db *appdbimpl) GetReceiver(convID uint64, senderID uint64) (uint64, error) {
 	var receiver uint64
-	err := db.c.QueryRow(`SELECT user2_id FROM conversations WHERE id = ?`, convID).Scan(&receiver)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, fmt.Errorf("conversation not found")
+	err := db.c.QueryRow(`SELECT user_id FROM memberships WHERE conv_id = ? AND user_id != ?`, convID, senderID).Scan(&receiver)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrMembershipNotFound
+		}
 	}
-	return receiver, err
+	return receiver, nil
 }
-*/

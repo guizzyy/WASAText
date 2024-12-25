@@ -43,6 +43,7 @@ type AppDatabase interface {
 	SetUsername(utilities.User) error
 	SetPhoto(utilities.User) error
 	GetUsers(string, uint64) ([]utilities.User, error)
+	GetUsernameByID(uint64) (string, error)
 
 	SetGroupName(string, uint64) error
 	SetGroupPhoto(uint64, string) error
@@ -51,12 +52,13 @@ type AppDatabase interface {
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
 	GetConversation(uint64) ([]utilities.Message, error)
+	GetReceiver(uint64, uint64) (uint64, error)
 
-	AddMessage(string, uint64, uint64) error
+	GetMessageInfo(uint64) (utilities.Message, error)
+	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64) error
-	ForwardMessage(uint64, uint64) error
 
-	AddReaction(string, uint64, uint64) error
+	AddReaction(string, uint64, string) error
 	RemoveReaction(uint64, uint64) error
 
 	Ping() error
@@ -115,7 +117,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			"status": `CREATE TABLE status (
     		receiver_id INTEGER NOT NULL,
     		mess_id INTEGER NOT NULL,
-    		info TEXT CHECK ( info IN ('read', 'received') ),
+    		info TEXT DEFAULT 'Unreceived' CHECK ( info IN ('Read', 'Received', 'Unreceived') ),
     		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
     		FOREIGN KEY (receiver_id) REFERENCES users(id),
     		PRIMARY KEY (mess_id, receiver_id))`,
@@ -123,11 +125,11 @@ func New(db *sql.DB) (AppDatabase, error) {
 			"reactions": `CREATE TABLE reactions (
     		reaction TEXT NOT NULL,
     		mess_id INTEGER NOT NULL,
-    		sender_id INTEGER NOT NULL,
+    		sender VARCHAR(16) UNIQUE NOT NULL CHECK ( length(sender) >= 3 AND length(sender) <= 16 ),
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    		PRIMARY KEY (mess_id, sender_id, reaction),
+    		PRIMARY KEY (mess_id, sender, reaction),
     		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
-    		FOREIGN KEY (sender_id) REFERENCES users(id))`,
+    		FOREIGN KEY (sender) REFERENCES users(name))`,
 		}
 
 		for table, query := range tables {
@@ -145,6 +147,10 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 var ErrUserNotFound = errors.New("User not found")
 var ErrGroupNotFound = errors.New("Group not found")
+var ErrMessageNotFound = errors.New("Message not found")
+var ErrConversationNotFound = errors.New("Conversation not found")
+var ErrMembershipNotFound = errors.New("Membership not found")
+var ErrReactionNotFound = errors.New("Reaction not found")
 
 func (db *appdbimpl) Ping() error {
 	return db.c.Ping()

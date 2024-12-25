@@ -2,12 +2,15 @@ package utilities
 
 import "time"
 
+/*
 type messStatus string
 
 const (
-	StatusReceived messStatus = "Received"
-	StatusRead     messStatus = "Read"
+	StatusReceived   messStatus = "Received"
+	StatusRead       messStatus = "Read"
+	StatusUnreceived messStatus = "Unreceived"
 )
+*/
 
 type convType string
 
@@ -27,10 +30,16 @@ type ID struct {
 }
 
 type Message struct {
-	Text      string     `json:"text"`
-	Sender    uint64     `json:"sender"`
-	Timestamp time.Time  `json:"timestamp"`
-	Status    messStatus `json:"status"`
+	ID        int64     `json:"id"`
+	Text      string    `json:"text"`
+	Conv      uint64    `json:"conv_id"`
+	Sender    uint64    `json:"sender_id"`
+	Timestamp time.Time `json:"timestamp"`
+	Status    string    `json:"status"`
+}
+
+type Reaction struct {
+	Emoji string `json:"emoji"`
 }
 
 type Notification struct {

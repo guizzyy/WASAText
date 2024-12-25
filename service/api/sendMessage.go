@@ -10,6 +10,7 @@ import (
 )
 
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	// Check authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		http.Error(w, "Error checking the token", http.StatusUnauthorized)
@@ -20,19 +21,21 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
+	// Get the text of the message from the request body
 	var mess utilities.Message
+	pMess := &mess
 	if err := json.NewDecoder(r.Body).Decode(&mess); err != nil {
 		http.Error(w, "Error decoding body", http.StatusBadRequest)
 		return
 	}
 	mess.Sender = id
-	conv_id, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
+	mess.Conv, err = strconv.ParseUint(params.ByName("convID"), 10, 64)
 	if err != nil {
 		http.Error(w, "Error decoding convID", http.StatusBadRequest)
 		return
 	}
 
-	if err := rt.db.AddMessage(mess.Text, conv_id, id); err != nil {
+	if err := rt.db.AddMessage(pMess); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

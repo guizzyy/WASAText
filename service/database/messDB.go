@@ -1,21 +1,36 @@
 package database
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"git.guizzyy.it/WASAText/service/utilities"
 )
 
-func (db *appdbimpl) AddMessage(text string, convId uint64, senderId uint64) error {
-	res, err := db.c.Exec(`INSERT INTO messages (text, conv_id, sender_id) VALUES (?, ?, ?)`, text, convId, senderId)
+func (db *appdbimpl) GetMessageInfo(idMess uint64) (utilities.Message, error) {
+	var msg utilities.Message
+	err := db.c.QueryRow(`SELECT text FROM message WHERE id = ?`, idMess).Scan(&msg.Text)
+	if errors.Is(err, sql.ErrNoRows) {
+		return utilities.Message{}, ErrMessageNotFound
+	}
+	return msg, err
+}
+
+func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
+	// Insert the new message in the database
+	err := db.c.QueryRow(`INSERT INTO messages (text, conv_id, sender_id) VALUES (?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Conv, mess.Sender).Scan(&mess.ID, &mess.Timestamp)
 	if err != nil {
 		return fmt.Errorf("error adding message to database: %v", err)
 	}
 
-	idMess, err := res.LastInsertId()
+	// Get the receiver id for insert the status message
+	receiver, err := db.GetReceiver(mess.Conv, mess.Sender)
 	if err != nil {
-		return fmt.Errorf("error getting last insert ID: %v", err)
+		return fmt.Errorf("error getting receiver: %v", err)
 	}
-	if _, err := db.c.Exec(`INSERT INTO status_messages (mess_id, receiver_id) VALUES (?, ?)`, idMess, receiverId); err != nil {
-		return fmt.Errorf("error adding the message status to database: %v", err)
+	mess.Status, err = db.UpdateStatus(receiver, mess.Sender)
+	if err != nil {
+		return fmt.Errorf("error updating receiver: %v", err)
 	}
 	return nil
 }
@@ -28,13 +43,12 @@ func (db *appdbimpl) RemoveMessage(messId uint64) error {
 	return nil
 }
 
-func (db *appdbimpl) ForwardMessage(messId uint64, receiverId uint64) error {
-	var text string
-	var convId uint64
-	var senderId uint64
-	rows := db.c.QueryRow(`SELECT (text, conv_id, sender_id) FROM messages WHERE id = ?`, messId).Scan(&text, &convId, &senderId)
-	if rows == nil {
-		return fmt.Errorf("could not find message to forward to")
+func (db *appdbimpl) UpdateStatus(receiver uint64, idMess uint64) (string, error) {
+	// TODO: make the function globally for any case (read, received, new message)
+	var info string
+	err := db.c.QueryRow(`INSERT INTO status(receiver_id, mess_id) VALUES (?, ?) RETURNING info`, receiver, idMess).Scan(&info)
+	if err != nil {
+		return "", fmt.Errorf("error updating status for message to receiver: %v", err)
 	}
-	// TO DO: CONTINUE
+	return info, nil
 }

@@ -274,7 +274,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Notification'
+                $ref: '#/components/schemas/Message'
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -312,7 +312,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Reaction/properties/emoji'
+              $ref: '#/components/schemas/Reaction'
       responses:
         '200':
           description: message correctly reacted

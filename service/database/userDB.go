@@ -80,3 +80,15 @@ func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, err
 
 	return users, nil
 }
+
+func (db *appdbimpl) GetUsernameByID(id uint64) (string, error) {
+	var username string
+	err := db.c.QueryRow("SELECT name FROM user WHERE id = ?", id).Scan(&username)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrUserNotFound
+		}
+		return "", fmt.Errorf("failed to get the username from database: %w", err)
+	}
+	return username, nil
+}
