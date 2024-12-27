@@ -39,6 +39,38 @@ func (db *appdbimpl) GetConversation(convID uint64) ([]utilities.Message, error)
 	rows, err := db.c.Query(`SELECT id, text, sender_id, timestamp FROM message WHERE conv_id = ?`, convID)
 }
 
+func (db *appdbimpl) CreateGroupConv(grName string) (utilities.Conversation, error) {
+	var conv utilities.Conversation
+	res := db.c.QueryRow(`INSERT INTO conversation(name) VALUES (?) RETURNING *`, grName).Scan()
+	// TODO: check query correctness and continue
+}
+
+func (db *appdbimpl) SetGroupName(group *utilities.Conversation) error {
+	_ := db.c.QueryRow(`UPDATE conversation SET name = ? WHERE id = ? RETURNING *`, group.Name, group.ID).Scan()
+	// TODO: same as the function above
+}
+
+func (db *appdbimpl) SetGroupPhoto(group *utilities.Conversation) error {
+	_ := db.c.QueryRow(`UPDATE conversation SET photo ? WHERE id = ? RETURNING *`, group.Photo, group.ID).Scan()
+	// TODO: same as the function above
+}
+
+func (db *appdbimpl) AddToGroup(idConv uint64, u utilities.User) error {
+	_, err := db.c.Exec(`INSERT INTO memberships(conv_id, user_id) VALUES (?, ?)`, idConv, u.ID)
+	if err != nil {
+		return fmt.Errorf("error in adding membership to conversation: %w", err)
+	}
+	return nil
+}
+
+func (db *appdbimpl) LeaveGroup(idConv uint64, idUser uint64) error {
+	_, err := db.c.Exec(`DELETE FROM memberships WHERE conv_id = ? AND user_id = ?`, idConv, idUser)
+	if err != nil {
+		return fmt.Errorf("error in leaving conversation: %w", err)
+	}
+	return nil
+}
+
 func (db *appdbimpl) GetReceiver(convID uint64, senderID uint64) (uint64, error) {
 	var receiver uint64
 	err := db.c.QueryRow(`SELECT user_id FROM memberships WHERE conv_id = ? AND user_id != ?`, convID, senderID).Scan(&receiver)

@@ -10,6 +10,7 @@ import (
 )
 
 func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	// Check authorization for the operation
 	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
 		http.Error(w, "Error checking the token", http.StatusUnauthorized)
@@ -20,34 +21,18 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
-	var newUsername string
-	if err := json.NewDecoder(r.Body).Decode(&newUsername); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	group_id, err := strconv.ParseUint(params.ByName("grID"), 10, 64)
+	// Get conv id and the new name to update from request body and path params
+	convID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
 	if err != nil {
-		http.Error(w, "Error parsing group id", http.StatusBadRequest)
+		http.Error(w, "Error converting convID to uint64", http.StatusBadRequest)
 		return
 	}
-
-	if check, err := rt.checkStringFormat(newUsername); err != nil || !check {
-		http.Error(w, "Failed group name format validation", http.StatusBadRequest)
-		return
-	}
-	if err := rt.db.SetGroupName(newUsername, group_id); err != nil {
+	var conv utilities.Conversation
+	conv.ID = convID
+	if err := json.NewDecoder(r.Body).Decode(&conv); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	response := utilities.Notification{
-		Outcome:   true,
-		Report:    "Group name updated successfully",
-		ErrorCode: 0,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	w.WriteHeader(http.StatusOK)
-
+	if err :=
 }

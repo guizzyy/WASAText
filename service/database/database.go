@@ -45,10 +45,10 @@ type AppDatabase interface {
 	GetUsers(string, uint64) ([]utilities.User, error)
 	GetUsernameByID(uint64) (string, error)
 
-	SetGroupName(string, uint64) error
+	SetGroupName(*utilities.Conversation) error
 	SetGroupPhoto(uint64, string) error
-	AddMembership(uint64, uint64) error
-	RemoveMembership(uint64, uint64) error
+	AddToGroup(uint64, utilities.User) error
+	LeaveGroup(uint64, uint64) error
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
 	GetConversation(uint64) ([]utilities.Message, error)
@@ -58,8 +58,8 @@ type AppDatabase interface {
 	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64) error
 
-	AddReaction(string, uint64, string) error
-	RemoveReaction(uint64, uint64) error
+	AddReaction(utilities.Reaction, uint64) error
+	RemoveReaction(uint64, string) error
 
 	Ping() error
 	IsInDatabase(uint64) (bool, error)

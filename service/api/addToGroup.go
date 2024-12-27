@@ -10,6 +10,7 @@ import (
 )
 
 func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	// Check authorization for the operation
 	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
 		http.Error(w, "Error checking the token", http.StatusUnauthorized)
@@ -20,27 +21,34 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
-	var username utilities.Username
-	if err := json.NewDecoder(r.Body).Decode(&username); err != nil {
-		http.Error(w, "error decoding the body", http.StatusBadRequest)
+	// Get info about user we want to add
+	var userAdded utilities.User
+	if err := json.NewDecoder(r.Body).Decode(&userAdded); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	gr_id, err := strconv.ParseUint(params.ByName("group_id"), 10, 64)
+
+	// Get conv id of the group conversation where we want to add the user
+	convID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
 	if err != nil {
-		http.Error(w, "error retrieving the group ID", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	if err := rt.db.AddMembership(user_id, gr_id); err != nil {
+	// Query the database to insert a new membership
+	if err := rt.db.AddToGroup(convID, userAdded); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
+	// Send a notification to the client for the success of the operation
 	response := utilities.Notification{
-		Outcome:   true,
-		Report:    "Enter the group successfully",
-		ErrorCode: 0,
+		Report: "User added to group successfully",
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	w.WriteHeader(http.StatusOK)
 }

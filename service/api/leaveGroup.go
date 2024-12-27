@@ -8,6 +8,7 @@ import (
 )
 
 func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	// Check authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		http.Error(w, "Error checking the token", http.StatusUnauthorized)
@@ -18,13 +19,18 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
-	gr_id, err := strconv.ParseUint(params.ByName("grID"), 10, 64)
+	// Get conv id of the group to leave
+	convID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
 	if err != nil {
-		http.Error(w, "Invalid group id", http.StatusBadRequest)
+		http.Error(w, "Error converting convID to uint64", http.StatusBadRequest)
+		return
 	}
 
-	if err := rt.db.RemoveMembership(id, gr_id); err != nil {
+	// Query the database to delete the membership of the group conversation
+	if err := rt.db.LeaveGroup(convID, id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+
 }

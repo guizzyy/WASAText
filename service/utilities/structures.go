@@ -40,6 +40,7 @@ type Message struct {
 
 type Reaction struct {
 	Emoji string `json:"emoji"`
+	User  string `json:"user"`
 }
 
 type Notification struct {

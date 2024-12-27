@@ -28,9 +28,10 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 		return
 	}
 
-	// Get the reaction emoji from the request body
-	var emoji utilities.Reaction
-	if err := json.NewDecoder(r.Body).Decode(&emoji); err != nil {
+	// Get the reaction react from the request body
+	var react utilities.Reaction
+	react.User = username
+	if err := json.NewDecoder(r.Body).Decode(&react); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -42,10 +43,17 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 		return
 	}
 
-	if err := rt.db.AddReaction(emoji.Emoji, idMess, username); err != nil {
+	// Add the reaction info in the database
+	if err := rt.db.AddReaction(react, idMess); err != nil {
 		http.Error(w, "Error adding reaction", http.StatusInternalServerError)
 		return
 	}
 
-	// TODO: figure out how to handle the reaction database
+	// Return the content to the client
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(react); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
