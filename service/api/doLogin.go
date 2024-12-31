@@ -39,7 +39,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 
 	w.Header().Set("Content-Type", "application/json")
 	if !isNew {
-		// The user is new
+		// The user already exists
 		w.WriteHeader(http.StatusOK)
 		response.Message = "Login successful"
 		if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -47,7 +47,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 			return
 		}
 	} else {
-		// The user already exists
+		// The user is new
 		w.WriteHeader(http.StatusCreated)
 		response.Message = "User created successfully"
 		if err := json.NewEncoder(w).Encode(response); err != nil {

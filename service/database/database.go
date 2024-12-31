@@ -57,6 +57,7 @@ type AppDatabase interface {
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64) error
+	InsertStatus(uint64, uint64) (string, error)
 
 	AddReaction(utilities.Reaction, uint64) error
 	RemoveReaction(uint64, string) error

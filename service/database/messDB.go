@@ -28,7 +28,7 @@ func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
 	if err != nil {
 		return fmt.Errorf("error getting receiver: %v", err)
 	}
-	mess.Status, err = db.UpdateStatus(receiver, mess.Sender)
+	mess.Status, err = db.InsertStatus(receiver, mess.Sender)
 	if err != nil {
 		return fmt.Errorf("error updating receiver: %v", err)
 	}
@@ -43,8 +43,7 @@ func (db *appdbimpl) RemoveMessage(messId uint64) error {
 	return nil
 }
 
-func (db *appdbimpl) UpdateStatus(receiver uint64, idMess uint64) (string, error) {
-	// TODO: make the function globally for any case (read, received, new message)
+func (db *appdbimpl) InsertStatus(receiver uint64, idMess uint64) (string, error) {
 	var info string
 	err := db.c.QueryRow(`INSERT INTO status(receiver_id, mess_id) VALUES (?, ?) RETURNING info`, receiver, idMess).Scan(&info)
 	if err != nil {

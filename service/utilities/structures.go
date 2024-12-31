@@ -25,10 +25,6 @@ type User struct {
 	Photo    string `json:"photo"`
 }
 
-type ID struct {
-	ID string `json:"id"`
-}
-
 type Message struct {
 	ID        int64     `json:"id"`
 	Text      string    `json:"text"`
@@ -48,10 +44,12 @@ type Notification struct {
 }
 
 type Conversation struct {
-	ID    uint64   `json:"id"`
-	Type  convType `json:"type"`
-	Name  string   `json:"name"`
-	Photo string   `json:"photo"`
+	ID        uint64    `json:"id"`
+	Type      convType  `json:"type"`
+	Name      string    `json:"name"`
+	Photo     string    `json:"photo"`
+	LastMess  string    `json:"last_mess"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type LoginResponse struct {

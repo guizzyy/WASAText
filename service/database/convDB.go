@@ -10,8 +10,18 @@ import (
 func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, error) {
 	// TODO: change the query in order to get last message and ordered it (also manage the status)
 
-	// Select the conv infos where the user participates
-	rows, err := db.c.Query(`SELECT (conversation.id, type, name, photo) FROM message INNER JOIN conversation INNER JOIN memberships ON conversation.id = memberships.conv_id = message.conv_id WHERE user_id = ?`, uID)
+	// Select the conv infos where the user participates ordered by last message
+	query := `SELECT 
+    			  c.id, c.type, c.name, c.photo, m1.text, m1.timestamp
+			  FROM 
+			      message AS m1
+			      INNER JOIN conversation AS c ON c.id = m1.conv_id  
+			      INNER JOIN memberships AS ms ON ms.conv_id = c.id
+			  WHERE 
+			      ms.user_id = ? AND m1.timestamp = (SELECT MAX(m2.timestamp) FROM message AS m2 WHERE m2.conv_id = m1.conv_id)
+			  ORDER BY 
+			      m1.timestamp DESC`
+	rows, err := db.c.Query(query, uID)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting conversations info: %w", err)
 	}
@@ -21,7 +31,7 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 	convs := make([]utilities.Conversation, 0)
 	for rows.Next() {
 		var conv utilities.Conversation
-		if err := rows.Scan(&conv.ID, &conv.Type, &conv.Name, &conv.Photo); err != nil {
+		if err := rows.Scan(&conv.ID, &conv.Type, &conv.Name, &conv.Photo, &conv.LastMess, &conv.Timestamp); err != nil {
 			return nil, fmt.Errorf("error in scanning conversation info: %w", err)
 		}
 		convs = append(convs, conv)
@@ -36,23 +46,57 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 
 func (db *appdbimpl) GetConversation(convID uint64) ([]utilities.Message, error) {
 	// TODO: find a way to manage the status of the message situation
-	rows, err := db.c.Query(`SELECT id, text, sender_id, timestamp FROM message WHERE conv_id = ?`, convID)
+	query := `SELECT 
+    			id, text, sender_id, timestamp, info 
+			  FROM 
+			    message
+			  	INNER JOIN status ON status.mess_id = message.id
+			  WHERE 
+			    conv_id = ?`
+	rows, err := db.c.Query(query, convID)
+	if err != nil {
+		return nil, fmt.Errorf("error in getting conversation: %w", err)
+	}
+	defer rows.Close()
+
+	messages := make([]utilities.Message, 0)
+	for rows.Next() {
+		var msg utilities.Message
+		msg.Conv = convID
+		if err := rows.Scan(&msg.ID, &msg.Text, &msg.Sender, &msg.Timestamp, &msg.Status); err != nil {
+			return nil, fmt.Errorf("error in scanning conversation info: %w", err)
+		}
+		// TODO: change this if in order to be effective only in message received
+		if msg.Status != "Read" {
+			msg.Status = "Read"
+		}
+		messages = append(messages, msg)
+	}
 }
 
 func (db *appdbimpl) CreateGroupConv(grName string) (utilities.Conversation, error) {
 	var conv utilities.Conversation
-	res := db.c.QueryRow(`INSERT INTO conversation(name) VALUES (?) RETURNING *`, grName).Scan()
-	// TODO: check query correctness and continue
+	err := db.c.QueryRow(`INSERT INTO conversation(name, type) VALUES (?, ?) RETURNING *`, grName, "group").Scan(&conv.ID, &conv.Type, &conv.Name, &conv.Photo)
+	if err != nil {
+		return conv, fmt.Errorf("error in creating group conv: %w", err)
+	}
+	return conv, nil
 }
 
 func (db *appdbimpl) SetGroupName(group *utilities.Conversation) error {
-	_ := db.c.QueryRow(`UPDATE conversation SET name = ? WHERE id = ? RETURNING *`, group.Name, group.ID).Scan()
-	// TODO: same as the function above
+	err := db.c.QueryRow(`UPDATE conversation SET name = ? WHERE id = ? RETURNING *`, group.Name, group.ID).Scan(&group.ID, &group.Type, &group.Name, &group.Photo)
+	if err != nil {
+		return fmt.Errorf("error in setting group name: %w", err)
+	}
+	return nil
 }
 
 func (db *appdbimpl) SetGroupPhoto(group *utilities.Conversation) error {
-	_ := db.c.QueryRow(`UPDATE conversation SET photo ? WHERE id = ? RETURNING *`, group.Photo, group.ID).Scan()
-	// TODO: same as the function above
+	err := db.c.QueryRow(`UPDATE conversation SET photo = ? WHERE id = ? RETURNING *`, group.Photo, group.ID).Scan(&group.ID, &group.Type, &group.Name, &group.Photo)
+	if err != nil {
+		return fmt.Errorf("error in setting group photo: %w", err)
+	}
+	return nil
 }
 
 func (db *appdbimpl) AddToGroup(idConv uint64, u utilities.User) error {

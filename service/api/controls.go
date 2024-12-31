@@ -24,8 +24,8 @@ func (rt *_router) checkToken(r *http.Request) (bool, uint64, error) {
 	if err != nil {
 		return false, 0, err
 	}
-	if isIn, err := rt.db.IsInDatabase(token); !isIn {
-		return false, 0, err
+	if isIn, err := rt.db.IsInDatabase(token); err != nil || !isIn {
+		return false, 0, nil
 	}
 	return true, token, nil
 }
