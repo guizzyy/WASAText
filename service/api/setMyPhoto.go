@@ -31,7 +31,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 	}
 
 	// Get the file from the request body
-	file, handler, err := r.FormFile("photo")
+	file, handler, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Error getting file from form", http.StatusBadRequest)
 		return

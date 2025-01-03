@@ -43,7 +43,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Username'
+              $ref: '#/components/schemas/User'
         required: true
       responses:
         '200':
@@ -77,7 +77,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Username'
+              $ref: '#/components/schemas/User'
         required: true
       responses:
         '200':
@@ -120,10 +120,38 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
-  /users/{uID}/home:
+  /users/{uID}/search:
     parameters:
       - $ref: '#/components/parameters/UserID'
 
+    get:
+      tags: ["user action"]
+      summary: search users by their username
+      description: |
+        Get a list of all possible users with names that match
+        with the written username in the query
+      operationId: searchUsers
+      parameters:
+        - name: username
+          in: query
+          required: true
+          description: the username wanted
+          schema:
+            $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: user found successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List-of-User'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+
+  /conversations:
     get:
       tags: ["user profile"]
       summary: get all conversations of the user
@@ -155,7 +183,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Username'
+              $ref: '#/components/schemas/User'
         required: true
       responses:
         '201':
@@ -169,31 +197,28 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
-  /users/{uID}/search:
-    parameters:
-      - $ref: '#/components/parameters/UserID'
-
-    get:
+  /conversations/group:
+    post:
       tags: ["user action"]
-      summary: search users by their username
+      summary: create a new group
       description: |
-        Get a list of all possible users with names that match
-        with the written username in the query
-      operationId: searchUsers
-      parameters:
-        - name: username
-          in: query
-          required: true
-          description: the username wanted
-          schema:
-            $ref: '#/components/schemas/Username'
+        Create a new group with a name and an optional photo,
+        the founder can add whoever he likes from all the users in the
+        application
+      operationId: createGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+        required: true
       responses:
-        '200':
-          description: user found successfully
+        '201':
+          description: group created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/List-of-User'
+                $ref: '#/components/schemas/Group'
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -216,6 +241,111 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Conversation'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+  /conversations/{convID}/name:
+    parameters:
+      - $ref: '#/components/parameters/ConversationID'
+
+    put:
+      tags: ["groups"]
+      summary: set a new group name
+      description: |
+        Change the current group name with another one
+      operationId: setGroupName
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Group'
+        required: true
+      responses:
+        '200':
+          description: group name changed correctly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+  /conversations/{convID}/photo:
+    parameters:
+      - $ref: '#/components/parameters/ConversationID'
+
+    put:
+      tags: ["groups"]
+      summary: set a new group photo
+      description: |
+        Update a new photo for the group
+      operationId: setGroupPhoto
+      requestBody:
+        description: the new group photo
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Group/properties/photo'
+        required: true
+      responses:
+        '200':
+          description: new group photo updated correctly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+  /conversations/{convID}/members:
+    parameters:
+      - $ref: '#/components/parameters/ConversationID'
+
+    post:
+      tags: ["groups"]
+      summary: add a user to a group
+      description: |
+        Add a member to a group. It can leave anytime
+      operationId: addToGroup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        '200':
+          description: user added correctly
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '500': {$ref: '#/components/responses/InternalServerError'}
+
+  /conversations/{convID}/members/{uID}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationID'
+      - $ref: '#/components/parameters/UserID'
+
+    delete:
+      tags: ["groups"]
+      summary: leave a group
+      description: |
+        Leave a group you are currently in.
+        This will delete also all the messages of the group
+      operationId: leaveGroup
+      responses:
+        '204':
+          description: group left correctly
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -253,7 +383,6 @@ paths:
     parameters:
       - $ref: '#/components/parameters/ConversationID'
       - $ref: '#/components/parameters/MessageID'
-
 
     post:
       tags: ["chats"]
@@ -345,140 +474,6 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
-  /groups:
-
-    post:
-      tags: ["user action"]
-      summary: create a new group
-      description: |
-        Create a new group with a name and an optional photo,
-        the founder can add whoever he likes from all the users in the
-        application
-      operationId: createGroup
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Group'
-        required: true
-      responses:
-        '201':
-          description: group created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Group'
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '404': {$ref: '#/components/responses/NotFound'}
-        '500': {$ref: '#/components/responses/InternalServerError'}
-
-  /groups/{grID}/name:
-    parameters:
-      - $ref: '#/components/parameters/GroupID'
-
-    put:
-      tags: ["groups"]
-      summary: set a new group name
-      description: |
-        Change the current group name with another one
-      operationId: setGroupName
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Username'
-        required: true
-      responses:
-        '200':
-          description: group name changed correctly
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Notification'
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '404': {$ref: '#/components/responses/NotFound'}
-        '500': {$ref: '#/components/responses/InternalServerError'}
-
-  /groups/{grID}/photo:
-    parameters:
-      - $ref: '#/components/parameters/GroupID'
-
-    put:
-      tags: ["groups"]
-      summary: set a new group photo
-      description: |
-        Update a new photo for the group
-      operationId: setGroupPhoto
-      requestBody:
-        description: the new group photo
-        content:
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Group/properties/photo'
-        required: true
-      responses:
-        '200':
-          description: new group photo updated correctly
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Notification'
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '404': {$ref: '#/components/responses/NotFound'}
-        '500': {$ref: '#/components/responses/InternalServerError'}
-
-  /groups/{grID}/members/:
-    parameters:
-      - $ref: '#/components/parameters/GroupID'
-
-    post:
-      tags: ["groups"]
-      summary: add a user to a group
-      description: |
-        Add a member to a group. It can leave anytime
-      operationId: addToGroup
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-        required: true
-      responses:
-        '200':
-          description: user added correctly
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Notification'
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '404': {$ref: '#/components/responses/NotFound'}
-        '500': {$ref: '#/components/responses/InternalServerError'}
-
-  /groups/{grID}/members/{uID}:
-    parameters:
-      - $ref: '#/components/parameters/GroupID'
-      - $ref: '#/components/parameters/UserID'
-
-    delete:
-      tags: ["groups"]
-      summary: leave a group
-      description: |
-        Leave a group you are currently in.
-        This will delete also all the messages of the group
-      operationId: leaveGroup
-      responses:
-        '204':
-          description: group left correctly
-        '400': {$ref: '#/components/responses/BadRequest'}
-        '401': {$ref: '#/components/responses/Unauthorized'}
-        '404': {$ref: '#/components/responses/NotFound'}
-        '500': {$ref: '#/components/responses/InternalServerError'}
-
-
 components:
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme
@@ -536,20 +531,16 @@ components:
       required: true
       description: ID of the reaction
 
-    GroupID:
-      schema:
-        type: integer
-        example: 5
-      name: grID
-      in: path
-      required: true
-      description: ID of the group
-
   schemas:
     User:
       description: User schema
       type: object
       properties:
+        id:
+          type: integer
+          example: 10
+          readOnly: true
+          description: user ID
         username:
           type: string
           example: Diego
@@ -563,11 +554,6 @@ components:
           minLength: 1
           maxLength: 999
           description: profile photo
-        id:
-          type: integer
-          example: 10
-          readOnly: true
-          description: user ID
 
     Group:
       description: group schema
@@ -620,13 +606,14 @@ components:
         status:
           type: string
           enum:
+            - "Unreceived"
             - "Received"
             - "Read"
           description: status of the message
         reactions:
           type: array
           items:
-            $ref: '#/components/schemas/Reaction/properties/emoji'
+            $ref: '#/components/schemas/Reaction'
           minItems: 0
           maxItems: 999
           description: reactions ID of the message
@@ -673,30 +660,8 @@ components:
           example: 😀
           minLength: 1
           maxLength: 4
-          pattern: >
-            ^([\u1F600-\u1F64F]|                
-              [\u1F300-\u1F5FF]|                
-              [\u1F680-\u1F6FF]|                
-              [\u2600-\u26FF]|                  
-              [\u2700-\u27BF]|                  
-              [\u1F900-\u1F9FF]|                
-              [\u1FA70-\u1FAFF]|                
-              [\u1F1E6-\u1F1FF]{2}|             
-              [\u1F468\u1F469](\u200D[\u1F466-\u1F469\u1F37C])*| 
-              [\u2600-\u27BF]\uFE0F?)$
+          pattern: '^[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1F700-\u1F77F\u1F780-\u1F7FF\u1F800-\u1F8FF\u1F900-\u1F9FF\u1FA00-\u1FA6F\u1FA70-\u1FAFF\u2600-\u26FF\u2700-\u27BF\u2300-\u23FF\u2B50\u23F0\u231A\u25AA\u25FE\u2B06\u2194\u2B05\u2195\u21A9\u21AA\u2753\u2754\u2755\u274C\u274E\u2B06\u2199]$'
           description: reacted emoji
-
-    Username:
-      description: Username schema
-      type: object
-      properties:
-        name:
-          type: string
-          example: Pippo
-          pattern: '^.*?$'
-          minLength: 3
-          maxLength: 16
-          description: name of the user wanted
 
     List-of-User:
       description: List of users schema

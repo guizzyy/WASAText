@@ -46,7 +46,8 @@ type AppDatabase interface {
 	GetUsernameByID(uint64) (string, error)
 
 	SetGroupName(*utilities.Conversation) error
-	SetGroupPhoto(uint64, string) error
+	SetGroupPhoto(*utilities.Conversation) error
+	CreateGroupConv(*utilities.Conversation, uint64) error
 	AddToGroup(uint64, utilities.User) error
 	LeaveGroup(uint64, uint64) error
 

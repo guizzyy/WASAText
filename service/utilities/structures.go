@@ -1,6 +1,9 @@
 package utilities
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 /*
 type messStatus string
@@ -56,3 +59,5 @@ type LoginResponse struct {
 	Message    string `json:"message"`
 	UserLogged User   `json:"user"`
 }
+
+var ErrString = errors.New("invalid string format")

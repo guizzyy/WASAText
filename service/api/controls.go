@@ -8,6 +8,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"git.guizzyy.it/WASAText/service/utilities"
 	"mime/multipart"
 	"net/http"
 	"regexp"
@@ -35,7 +36,7 @@ func (rt *_router) checkStringFormat(name string) (bool, error) {
 	pattern := `^.*?$`
 
 	if len(name) < 3 || len(name) > 16 {
-		return false, errors.New("string length must be between 3 and 16 characters")
+		return false, utilities.ErrString
 	}
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -44,7 +45,7 @@ func (rt *_router) checkStringFormat(name string) (bool, error) {
 	if re.MatchString(name) {
 		return true, nil
 	} else {
-		return false, errors.New("string contains invalid characters")
+		return false, utilities.ErrString
 	}
 }
 

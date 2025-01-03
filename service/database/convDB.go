@@ -8,7 +8,7 @@ import (
 )
 
 func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, error) {
-	// TODO: change the query in order to get last message and ordered it (also manage the status)
+	// TODO: manage the status of received message
 
 	// Select the conv infos where the user participates ordered by last message
 	query := `SELECT 
@@ -66,21 +66,26 @@ func (db *appdbimpl) GetConversation(convID uint64) ([]utilities.Message, error)
 		if err := rows.Scan(&msg.ID, &msg.Text, &msg.Sender, &msg.Timestamp, &msg.Status); err != nil {
 			return nil, fmt.Errorf("error in scanning conversation info: %w", err)
 		}
-		// TODO: change this if in order to be effective only in message received
-		if msg.Status != "Read" {
+		if msg.Status == "Received" {
 			msg.Status = "Read"
 		}
 		messages = append(messages, msg)
 	}
 }
 
-func (db *appdbimpl) CreateGroupConv(grName string) (utilities.Conversation, error) {
-	var conv utilities.Conversation
-	err := db.c.QueryRow(`INSERT INTO conversation(name, type) VALUES (?, ?) RETURNING *`, grName, "group").Scan(&conv.ID, &conv.Type, &conv.Name, &conv.Photo)
+func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uint64) error {
+	// Insert and retrieve the new conversation info in the database
+	err := db.c.QueryRow(`INSERT INTO conversation(name, type) VALUES (?, ?) RETURNING *`, grConv.Name, grConv.Type).Scan(&grConv.ID, grConv.Type, &grConv.Name, &grConv.Photo)
 	if err != nil {
-		return conv, fmt.Errorf("error in creating group conv: %w", err)
+		return fmt.Errorf("error in creating conversation: %w", err)
 	}
-	return conv, nil
+
+	// Insert the new membership of the group creator and the new group created
+	_, err = db.c.Exec(`INSERT INTO memberships(conv_id, user_id) VALUES (?, ?)`, grConv.ID, user_id)
+	if err != nil {
+		return fmt.Errorf("error in adding memberships while creating the group: %w", err)
+	}
+	return nil
 }
 
 func (db *appdbimpl) SetGroupName(group *utilities.Conversation) error {

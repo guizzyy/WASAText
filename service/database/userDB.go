@@ -8,10 +8,10 @@ import (
 )
 
 func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
-	err := db.c.QueryRow("SELECT id, photo FROM users WHERE name = ?", u.Username).Scan(&u.ID, &u.Photo)
+	err := db.c.QueryRow("SELECT id, photo FROM user WHERE name = ?", u.Username).Scan(&u.ID, &u.Photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			res, err := db.c.Exec("INSERT INTO users(name) VALUES (?)", u.Username)
+			res, err := db.c.Exec("INSERT INTO user(name) VALUES (?)", u.Username)
 			if err != nil {
 				return false, fmt.Errorf("failed to insert u: %w", err)
 			}
@@ -28,7 +28,7 @@ func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
 }
 
 func (db *appdbimpl) SetUsername(u utilities.User) error {
-	res, err := db.c.Exec(`UPDATE users SET name = ? WHERE id = ?`, u.Username, u.ID)
+	res, err := db.c.Exec(`UPDATE user SET name = ? WHERE id = ?`, u.Username, u.ID)
 	if err != nil {
 		return err
 	}
