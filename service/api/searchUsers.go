@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
+	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
@@ -11,27 +12,32 @@ func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, params ht
 	// Check the authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("searchUsers not authorized")
+		http.Error(w, "searchUsers operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
 	// Get the username wanted from the query and check if it's valid
 	username := r.URL.Query().Get("username")
 	if check, err := rt.checkStringFormat(username); err != nil {
-		http.Error(w, "Error checking the user format", http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error during string format check")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		http.Error(w, "username not valid", http.StatusBadRequest)
+		context.Logger.Error(utilities.ErrString)
+		http.Error(w, "invalid string format", http.StatusBadRequest)
 		return
 	}
 
 	// Query the database in order to retrieve name and photo from users
 	users, err := rt.db.GetUsers(username, id)
 	if err != nil {
+		context.Logger.WithError(err).Error("error during getUsers db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -39,6 +45,7 @@ func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, params ht
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(users); err != nil {
+		context.Logger.WithError(err).Error("json searchUsers encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -10,40 +10,47 @@ import (
 )
 
 func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+	// Check authorization for the operation
 	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("setGroupPhoto not authorized")
+		http.Error(w, "setGroupPhoto operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
-	var photo utilities.Photo
-	if err = json.NewDecoder(r.Body).Decode(&photo); err != nil {
-		http.Error(w, "error decoding the photo", http.StatusBadRequest)
+	var conv utilities.Conversation
+
+	//Get the photo from the request body and save the file path; get the gorup id
+	if conv.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
+		context.Logger.WithError(err).Error("error during get photo path")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	gr_id, err := strconv.ParseUint(params.ByName("grID"), 10, 64)
-	if err != nil {
-		http.Error(w, "error decoding the id photo", http.StatusBadRequest)
+	if conv.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
+		context.Logger.WithError(err).Error("error in getting convID from the path")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := rt.db.SetGroupPhoto(gr_id, photo.Photo); err != nil {
+	// Set the new group photo in the database
+	if err := rt.db.SetGroupPhoto(conv); err != nil {
+		context.Logger.WithError(err).Error("error during setGroupPhoto db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response := utilities.Notification{
-		Outcome:   true,
-		Report:    "Group photo updated successfully",
-		ErrorCode: 0,
+		Report: "Group photo updated successfully",
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		context.Logger.WithError(err).Error("json set group photo encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	w.WriteHeader(http.StatusOK)
 }

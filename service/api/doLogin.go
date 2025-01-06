@@ -12,6 +12,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 	// Get the username for log in the request body
 	var userLog utilities.User
 	if err := json.NewDecoder(r.Body).Decode(&userLog); err != nil {
+		context.Logger.WithError(err).Error("json login decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -19,16 +20,19 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 
 	// Check if the username provided has the correct format
 	if check, err := rt.checkStringFormat(userLog.Username); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error during string format check")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		http.Error(w, "Username invalid", http.StatusBadRequest)
+		context.Logger.WithError(err).Error(utilities.ErrString)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Ask the database if it is a new/existing user and get their ID and photo
 	isNew, err := rt.db.LogUser(pUser)
 	if err != nil {
+		context.Logger.WithError(err).Error("error during logUser")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -43,7 +47,8 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		w.WriteHeader(http.StatusOK)
 		response.Message = "Login successful"
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, "failed encoding the response", http.StatusInternalServerError)
+			context.Logger.WithError(err).Error("json login encode error")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
@@ -51,7 +56,8 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		w.WriteHeader(http.StatusCreated)
 		response.Message = "User created successfully"
 		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, "failed encoding the response", http.StatusInternalServerError)
+			context.Logger.WithError(err).Error("json login encode error")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}

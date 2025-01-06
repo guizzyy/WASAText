@@ -12,11 +12,13 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 	// Check authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, "Error checking the token", http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("createGroup not authorized")
+		http.Error(w, "createGroup operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
@@ -25,15 +27,18 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 
 	// Get the group name from the request body
 	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("json create group decode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Check if the group name format is correct
 	if check, err := rt.checkStringFormat(group.Name); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error during string format check")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
+		context.Logger.WithError(err).Error(utilities.ErrString)
 		http.Error(w, "Group name is invalid", http.StatusBadRequest)
 		return
 	}
@@ -41,6 +46,7 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 	// Query the database to save the new group
 	group.Type = "group"
 	if err := rt.db.CreateGroupConv(pGroup, id); err != nil {
+		context.Logger.WithError(err).Error("error during createGroup db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -48,7 +54,7 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(group); err != nil {
+		context.Logger.WithError(err).Error("json create group encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }

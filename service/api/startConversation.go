@@ -10,30 +10,34 @@ import (
 
 func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check the authorization for the operation
-	isAuth, id, err := rt.checkToken(r)
+	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("startConversation not authorized")
+		http.Error(w, "startConversation operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
 	// Retrieve and check the format of the username in the request body
 	var receiver utilities.User
 	if err := json.NewDecoder(r.Body).Decode(&receiver); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("json start conv decode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if check, err := rt.checkStringFormat(receiver.Username); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error during string format check")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		http.Error(w, "Username format not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error(utilities.ErrString)
+		http.Error(w, "Username format not allowed", http.StatusBadRequest)
 		return
 	}
 
 	// TODO: find a way to manage the redundancy of private conversations
-	err :=
 }

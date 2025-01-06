@@ -10,14 +10,16 @@ import (
 )
 
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
-	// Get the authorization for the operation
+	// Check authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("Error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("setMyUserName not authorized")
+		http.Error(w, "setMyUsername operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
@@ -25,21 +27,25 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 	var user utilities.User
 	user.ID = id
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		context.Logger.WithError(err).Error("json setUsername decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Check if the username provided has the correct format
 	if check, err := rt.checkStringFormat(user.Username); err != nil {
-		http.Error(w, "Error while checking the username", http.StatusInternalServerError)
+		context.Logger.WithError(err).Error("error during string format check")
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	} else if !check {
-		http.Error(w, "Invalid username proposed", http.StatusBadRequest)
+		context.Logger.WithError(err).Error(utilities.ErrString)
+		http.Error(w, "invalid string format", http.StatusBadRequest)
 		return
 	}
 
 	// Set the new username in the database
 	if err = rt.db.SetUsername(user); err != nil {
+		context.Logger.WithError(err).Error("error during setUsername db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -51,6 +57,8 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(response); err != nil {
+		context.Logger.WithError(err).Error("json setUsername encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

@@ -13,11 +13,13 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 	// Check authorization for the operation
 	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("addToGroup operation not authorized")
+		http.Error(w, "addToGroup operation not allowed", http.StatusUnauthorized)
 		return
 	}
 

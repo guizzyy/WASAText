@@ -13,26 +13,45 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 	// Check authorization for the operation
 	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("setGroupName not authorized")
+		http.Error(w, "setGroupName operation not allowed", http.StatusUnauthorized)
 		return
 	}
+
+	var conv utilities.Conversation
 
 	// Get conv id and the new name to update from request body and path params
-	convID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
-	if err != nil {
-		http.Error(w, "Error converting convID to uint64", http.StatusBadRequest)
+	if conv.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
+		context.Logger.WithError(err).Error("error in getting convID from the path")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	var conv utilities.Conversation
-	conv.ID = convID
 	if err := json.NewDecoder(r.Body).Decode(&conv); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("json set group name decode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err :=
+	// Set the new group name in the database
+	if err := rt.db.SetGroupName(conv); err != nil {
+		context.Logger.WithError(err).Error("error during set group name db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Send the client a notification for the success of the operation
+	response := utilities.Notification{
+		Report: "Group name update successfully",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err = json.NewEncoder(w).Encode(response); err != nil {
+		context.Logger.WithError(err).Error("json set group name encode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

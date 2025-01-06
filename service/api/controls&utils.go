@@ -8,9 +8,13 @@ package api
 import (
 	"errors"
 	"fmt"
+	"git.guizzyy.it/WASAText/service/api/reqcontext"
 	"git.guizzyy.it/WASAText/service/utilities"
+	"io"
 	"mime/multipart"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 )
@@ -62,4 +66,50 @@ func (rt *_router) checkFileFormat(file multipart.File) (bool, error) {
 	default:
 		return false, nil
 	}
+}
+
+func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context reqcontext.RequestContext) (string, error) {
+	// Limit the dimension of the file to 32MB
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		context.Logger.WithError(err).Error("Dimension of the file too big")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return "", err
+	}
+
+	// Get the file from the request body
+	file, handler, err := r.FormFile("photo")
+	if err != nil {
+		context.Logger.WithError(err).Error("Error during file upload")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return "", err
+	}
+	defer file.Close()
+
+	// Check if the file is an image file
+	if isImage, err := rt.checkFileFormat(file); err != nil {
+		context.Logger.WithError(err).Error("Error during check file format")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return "", err
+	} else if !isImage {
+		context.Logger.WithError(err).Error("File is not an image")
+		http.Error(w, "Not a file image uploaded", http.StatusBadRequest)
+		return "", err
+	}
+
+	// Create a file in the folder and copy the image in it
+	filePath := filepath.Join("photos", handler.Filename)
+	fileLocal, err := os.Create(filePath)
+	if err != nil {
+		context.Logger.WithError(err).Error("Error during file creation")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return "", err
+	}
+	defer fileLocal.Close()
+	_, err = io.Copy(fileLocal, file)
+	if err != nil {
+		context.Logger.WithError(err).Error("Error during file copy")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return "", err
+	}
+	return filePath, nil
 }

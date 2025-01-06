@@ -11,17 +11,20 @@ func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, para
 	// Check the authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("getConversations not authorized")
+		http.Error(w, "getConversations operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
 	// TODO: modify the function because conversations must be sorted
 	convs, err := rt.db.GetConversations(id)
 	if err != nil {
+		context.Logger.WithError(err).Error("error during GetConversations db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -29,7 +32,8 @@ func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, para
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(convs); err != nil {
-		http.Error(w, "error during the response encode", http.StatusInternalServerError)
+		context.Logger.WithError(err).Error("json getConversations encode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }

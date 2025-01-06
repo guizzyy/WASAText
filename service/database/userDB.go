@@ -30,11 +30,11 @@ func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
 func (db *appdbimpl) SetUsername(u utilities.User) error {
 	res, err := db.c.Exec(`UPDATE user SET name = ? WHERE id = ?`, u.Username, u.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update user: %w", err)
 	}
 	rows, err := res.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get affected rows in set username db function: %w", err)
 	}
 	if rows == 0 {
 		return ErrUserNotFound

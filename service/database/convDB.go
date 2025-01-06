@@ -88,18 +88,32 @@ func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uin
 	return nil
 }
 
-func (db *appdbimpl) SetGroupName(group *utilities.Conversation) error {
-	err := db.c.QueryRow(`UPDATE conversation SET name = ? WHERE id = ? RETURNING *`, group.Name, group.ID).Scan(&group.ID, &group.Type, &group.Name, &group.Photo)
+func (db *appdbimpl) SetGroupName(group utilities.Conversation) error {
+	res, err := db.c.Exec(`UPDATE conversation SET name = ? WHERE id = ?`, group.Name, group.ID)
 	if err != nil {
 		return fmt.Errorf("error in setting group name: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error to get affected rows in group name db function: %w", err)
+	}
+	if rows == 0 {
+		return ErrGroupNotFound
 	}
 	return nil
 }
 
-func (db *appdbimpl) SetGroupPhoto(group *utilities.Conversation) error {
-	err := db.c.QueryRow(`UPDATE conversation SET photo = ? WHERE id = ? RETURNING *`, group.Photo, group.ID).Scan(&group.ID, &group.Type, &group.Name, &group.Photo)
+func (db *appdbimpl) SetGroupPhoto(group utilities.Conversation) error {
+	res, err := db.c.Exec(`UPDATE conversation SET photo = ? WHERE id = ?`, group.Photo, group.ID)
 	if err != nil {
 		return fmt.Errorf("error in setting group photo: %w", err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error to get affected rows in set group photo db function: %w", err)
+	}
+	if rows == 0 {
+		return ErrGroupNotFound
 	}
 	return nil
 }
