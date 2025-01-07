@@ -8,21 +8,15 @@ import (
 )
 
 func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
-	err := db.c.QueryRow("SELECT id, photo FROM user WHERE name = ?", u.Username).Scan(&u.ID, &u.Photo)
+	err := db.c.QueryRow(`SELECT id, photo FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &u.Photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			res, err := db.c.Exec("INSERT INTO user(name) VALUES (?)", u.Username)
+			err := db.c.QueryRow(`INSERT INTO user(name) VALUES (?) RETURNING id, photo`, u.Username).Scan(&u.ID, &u.Photo)
 			if err != nil {
-				return false, fmt.Errorf("failed to insert u: %w", err)
+				return false, fmt.Errorf("failed to insert a new user: %w", err)
 			}
-			id, err := res.LastInsertId()
-			if err != nil {
-				return false, fmt.Errorf("failed to get the last ID: %w", err)
-			}
-			u.ID = uint64(id)
-			return true, nil
 		}
-		return false, err
+		return false, fmt.Errorf("failed to query user table for login: %w", err)
 	}
 	return false, nil
 }
@@ -81,14 +75,14 @@ func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, err
 	return users, nil
 }
 
-func (db *appdbimpl) GetUsernameByID(id uint64) (string, error) {
-	var username string
-	err := db.c.QueryRow("SELECT name FROM user WHERE id = ?", id).Scan(&username)
+func (db *appdbimpl) GetIDByUsername(username string) (uint64, error) {
+	var uID uint64
+	err := db.c.QueryRow("SELECT id FROM user WHERE name = ?", username).Scan(&uID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return "", ErrUserNotFound
+			return 0, ErrUserNotFound
 		}
-		return "", fmt.Errorf("failed to get the username from database: %w", err)
+		return 0, fmt.Errorf("failed to get the username from database: %w", err)
 	}
-	return username, nil
+	return uID, nil
 }

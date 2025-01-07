@@ -33,13 +33,14 @@ type Message struct {
 	Text      string    `json:"text"`
 	Conv      uint64    `json:"conv_id"`
 	Sender    uint64    `json:"sender_id"`
+	IsForward bool      `json:"is_forwarded"`
 	Timestamp time.Time `json:"timestamp"`
 	Status    string    `json:"status"`
 }
 
 type Reaction struct {
 	Emoji string `json:"emoji"`
-	User  string `json:"user"`
+	User  uint64 `json:"user"`
 }
 
 type Notification struct {
@@ -60,4 +61,4 @@ type LoginResponse struct {
 	UserLogged User   `json:"user"`
 }
 
-var ErrString = errors.New("invalid string format")
+var ErrString = errors.New("invalid string format for the name")

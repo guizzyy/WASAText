@@ -18,7 +18,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("addToGroup operation not authorized")
+		context.Logger.Error("addToGroup operation not authorized")
 		http.Error(w, "addToGroup operation not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -26,19 +26,27 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 	// Get info about user we want to add
 	var userAdded utilities.User
 	if err := json.NewDecoder(r.Body).Decode(&userAdded); err != nil {
+		context.Logger.WithError(err).Error("json add to group decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if userAdded.ID, err = rt.db.GetIDByUsername(userAdded.Username); err != nil {
+		context.Logger.WithError(err).Error("error during getIDByUsername db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Get conv id of the group conversation where we want to add the user
 	convID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error in getting convID for addToGroup")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Query the database to insert a new membership
-	if err := rt.db.AddToGroup(convID, userAdded); err != nil {
+	if err = rt.db.AddToGroup(convID, userAdded); err != nil {
+		context.Logger.WithError(err).Error("error during addToGroup db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -49,8 +57,8 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err = json.NewEncoder(w).Encode(response); err != nil {
+		context.Logger.WithError(err).Error("json add to group encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
 	}
 }

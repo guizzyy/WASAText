@@ -13,11 +13,11 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 	isAuth, _, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during checkToken")
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("startConversation not authorized")
+		context.Logger.Error("startConversation not authorized")
 		http.Error(w, "startConversation operation not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -26,7 +26,7 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 	var receiver utilities.User
 	if err := json.NewDecoder(r.Body).Decode(&receiver); err != nil {
 		context.Logger.WithError(err).Error("json start conv decode error")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if check, err := rt.checkStringFormat(receiver.Username); err != nil {
@@ -35,7 +35,7 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 		return
 	} else if !check {
 		context.Logger.WithError(err).Error(utilities.ErrString)
-		http.Error(w, "Username format not allowed", http.StatusBadRequest)
+		http.Error(w, utilities.ErrString.Error(), http.StatusBadRequest)
 		return
 	}
 

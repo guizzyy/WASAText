@@ -17,7 +17,7 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("createGroup not authorized")
+		context.Logger.Error("createGroup not authorized")
 		http.Error(w, "createGroup operation not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -26,7 +26,7 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 	pGroup := &group
 
 	// Get the group name from the request body
-	if err := json.NewDecoder(r.Body).Decode(&group); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&group); err != nil {
 		context.Logger.WithError(err).Error("json create group decode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -38,14 +38,14 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.WithError(err).Error(utilities.ErrString)
-		http.Error(w, "Group name is invalid", http.StatusBadRequest)
+		context.Logger.Error(utilities.ErrString)
+		http.Error(w, utilities.ErrString.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Query the database to save the new group
 	group.Type = "group"
-	if err := rt.db.CreateGroupConv(pGroup, id); err != nil {
+	if err = rt.db.CreateGroupConv(pGroup, id); err != nil {
 		context.Logger.WithError(err).Error("error during createGroup db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -53,7 +53,7 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(group); err != nil {
+	if err = json.NewEncoder(w).Encode(group); err != nil {
 		context.Logger.WithError(err).Error("json create group encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

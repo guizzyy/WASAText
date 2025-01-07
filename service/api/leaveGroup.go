@@ -11,23 +11,27 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, params htt
 	// Check authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.Error("leaveGroup not authorized")
+		http.Error(w, "leaveGroup operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
 	// Get conv id of the group to leave
 	convID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
 	if err != nil {
-		http.Error(w, "Error converting convID to uint64", http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error in getting convID for leaveGroup")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Query the database to delete the membership of the group conversation
-	if err := rt.db.LeaveGroup(convID, id); err != nil {
+	if err = rt.db.LeaveGroup(convID, id); err != nil {
+		context.Logger.WithError(err).Error("error during leaveGroup db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

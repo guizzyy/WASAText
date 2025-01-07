@@ -13,36 +13,44 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 	// Check authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
+		context.Logger.Error("sendMessage not authorized")
+		http.Error(w, "sendMessage operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
 	// Get the text of the message from the request body
 	var mess utilities.Message
 	pMess := &mess
-	if err := json.NewDecoder(r.Body).Decode(&mess); err != nil {
-		http.Error(w, "Error decoding body", http.StatusBadRequest)
+	if err = json.NewDecoder(r.Body).Decode(&mess); err != nil {
+		context.Logger.WithError(err).Error("json send message decode error")
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	mess.Sender = id
-	mess.Conv, err = strconv.ParseUint(params.ByName("convID"), 10, 64)
-	if err != nil {
-		http.Error(w, "Error decoding convID", http.StatusBadRequest)
+
+	// Get the conv id where to send the message from the path
+	if mess.Conv, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
+		context.Logger.WithError(err).Error("error in getting convID for sendMessage")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := rt.db.AddMessage(pMess); err != nil {
+	// Query the database to add the new message
+	if err = rt.db.AddMessage(pMess); err != nil {
+		context.Logger.WithError(err).Error("error during addMessage db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(mess); err != nil {
+	if err = json.NewEncoder(w).Encode(mess); err != nil {
+		context.Logger.WithError(err).Error("json send message encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }

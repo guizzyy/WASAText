@@ -43,7 +43,7 @@ type AppDatabase interface {
 	SetUsername(utilities.User) error
 	SetPhoto(utilities.User) error
 	GetUsers(string, uint64) ([]utilities.User, error)
-	GetUsernameByID(uint64) (string, error)
+	GetIDByUsername(string) (uint64, error)
 
 	SetGroupName(utilities.Conversation) error
 	SetGroupPhoto(utilities.Conversation) error
@@ -53,15 +53,15 @@ type AppDatabase interface {
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
 	GetConversation(uint64) ([]utilities.Message, error)
-	GetReceiver(uint64, uint64) (uint64, error)
+	GetReceivers(uint64, uint64) ([]uint64, error)
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64) error
-	InsertStatus(uint64, uint64) (string, error)
+	InsertStatus([]uint64, uint64) (string, error)
 
 	AddReaction(utilities.Reaction, uint64) error
-	RemoveReaction(uint64, string) error
+	RemoveReaction(uint64, uint64) error
 
 	Ping() error
 	IsInDatabase(uint64) (bool, error)
@@ -112,6 +112,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		text VARCHAR(250) NOT NULL CHECK ( length(text) > 0 AND length(text) <= 250 ),
     		conv_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
+    		is_forwarded BOOLEAN NOT NULL DEFAULT FALSE,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		FOREIGN KEY (conv_id) REFERENCES conversations(id),
     		FOREIGN KEY (sender_id) REFERENCES users(id))`,
@@ -127,11 +128,11 @@ func New(db *sql.DB) (AppDatabase, error) {
 			"reactions": `CREATE TABLE reactions (
     		reaction TEXT NOT NULL,
     		mess_id INTEGER NOT NULL,
-    		sender VARCHAR(16) UNIQUE NOT NULL CHECK ( length(sender) >= 3 AND length(sender) <= 16 ),
+    		sender_id INTEGER NOT NULL,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    		PRIMARY KEY (mess_id, sender, reaction),
+    		PRIMARY KEY (mess_id, sender_id, reaction),
     		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
-    		FOREIGN KEY (sender) REFERENCES users(name))`,
+    		FOREIGN KEY (sender_id) REFERENCES users(name))`,
 		}
 
 		for table, query := range tables {

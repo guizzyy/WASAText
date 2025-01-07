@@ -13,8 +13,8 @@ func (db *appdbimpl) AddReaction(react utilities.Reaction, messId uint64) error 
 	return nil
 }
 
-func (db *appdbimpl) RemoveReaction(messId uint64, sender string) error {
-	_, err := db.c.Exec(`DELETE FROM reactions WHERE mess_id = ? AND sender = ?`, messId, sender)
+func (db *appdbimpl) RemoveReaction(messId uint64, senderId uint64) error {
+	_, err := db.c.Exec(`DELETE FROM reactions WHERE mess_id = ? AND sender = ?`, messId, senderId)
 	if err != nil {
 		return fmt.Errorf("error removing reaction: %s", err)
 	}

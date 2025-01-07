@@ -18,15 +18,15 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("setMyUserName not authorized")
-		http.Error(w, "setMyUsername operation not allowed", http.StatusUnauthorized)
+		context.Logger.Error("setMyUserName not authorized")
+		http.Error(w, "setMyUserName operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
 	// Get the new username wanted form the request body
 	var user utilities.User
 	user.ID = id
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&user); err != nil {
 		context.Logger.WithError(err).Error("json setUsername decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -35,11 +35,11 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 	// Check if the username provided has the correct format
 	if check, err := rt.checkStringFormat(user.Username); err != nil {
 		context.Logger.WithError(err).Error("error during string format check")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
 		context.Logger.WithError(err).Error(utilities.ErrString)
-		http.Error(w, "invalid string format", http.StatusBadRequest)
+		http.Error(w, utilities.ErrString.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -56,7 +56,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err = json.NewEncoder(w).Encode(response); err != nil {
 		context.Logger.WithError(err).Error("json setUsername encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

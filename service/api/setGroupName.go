@@ -18,7 +18,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("setGroupName not authorized")
+		context.Logger.Error("setGroupName not authorized")
 		http.Error(w, "setGroupName operation not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -27,18 +27,18 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 
 	// Get conv id and the new name to update from request body and path params
 	if conv.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
-		context.Logger.WithError(err).Error("error in getting convID from the path")
+		context.Logger.WithError(err).Error("error in getting convID for setGroupName")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&conv); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&conv); err != nil {
 		context.Logger.WithError(err).Error("json set group name decode error")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Set the new group name in the database
-	if err := rt.db.SetGroupName(conv); err != nil {
+	if err = rt.db.SetGroupName(conv); err != nil {
 		context.Logger.WithError(err).Error("error during set group name db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

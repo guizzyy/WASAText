@@ -18,7 +18,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("setGroupPhoto not authorized")
+		context.Logger.Error("setGroupPhoto not authorized")
 		http.Error(w, "setGroupPhoto operation not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -32,13 +32,13 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 	if conv.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
-		context.Logger.WithError(err).Error("error in getting convID from the path")
+		context.Logger.WithError(err).Error("error in getting convID for setGroupPhoto")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Set the new group photo in the database
-	if err := rt.db.SetGroupPhoto(conv); err != nil {
+	if err = rt.db.SetGroupPhoto(conv); err != nil {
 		context.Logger.WithError(err).Error("error during setGroupPhoto db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -49,7 +49,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err = json.NewEncoder(w).Encode(response); err != nil {
 		context.Logger.WithError(err).Error("json set group photo encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

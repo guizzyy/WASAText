@@ -24,15 +24,15 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.WithError(err).Error(utilities.ErrString)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.Error(utilities.ErrString)
+		http.Error(w, utilities.ErrString.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Ask the database if it is a new/existing user and get their ID and photo
 	isNew, err := rt.db.LogUser(pUser)
 	if err != nil {
-		context.Logger.WithError(err).Error("error during logUser")
+		context.Logger.WithError(err).Error("error during logUser db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -46,7 +46,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		// The user already exists
 		w.WriteHeader(http.StatusOK)
 		response.Message = "Login successful"
-		if err := json.NewEncoder(w).Encode(response); err != nil {
+		if err = json.NewEncoder(w).Encode(response); err != nil {
 			context.Logger.WithError(err).Error("json login encode error")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -55,7 +55,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		// The user is new
 		w.WriteHeader(http.StatusCreated)
 		response.Message = "User created successfully"
-		if err := json.NewEncoder(w).Encode(response); err != nil {
+		if err = json.NewEncoder(w).Encode(response); err != nil {
 			context.Logger.WithError(err).Error("json login encode error")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

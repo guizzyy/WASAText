@@ -17,7 +17,7 @@ func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("searchUsers not authorized")
+		context.Logger.Error("searchUsers not authorized")
 		http.Error(w, "searchUsers operation not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -30,7 +30,7 @@ func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, params ht
 		return
 	} else if !check {
 		context.Logger.Error(utilities.ErrString)
-		http.Error(w, "invalid string format", http.StatusBadRequest)
+		http.Error(w, utilities.ErrString.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -44,7 +44,7 @@ func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, params ht
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(users); err != nil {
+	if err = json.NewEncoder(w).Encode(users); err != nil {
 		context.Logger.WithError(err).Error("json searchUsers encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

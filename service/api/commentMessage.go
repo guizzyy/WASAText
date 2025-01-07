@@ -13,25 +13,21 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 	// Check authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
-		http.Error(w, "Error checking the token", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("error during checkToken")
+		http.Error(w, "Error checking the token", http.StatusInternalServerError)
 		return
 	}
 	if !isAuth {
-		http.Error(w, "Operation not allowed", http.StatusUnauthorized)
-		return
-	}
-
-	// Get the username to insert in the reaction table
-	username, err := rt.db.GetUsernameByID(id)
-	if err != nil {
-		http.Error(w, "Error getting user by id", http.StatusNotFound)
+		context.Logger.Error("commentMessage not authorized")
+		http.Error(w, "commentMessage operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
 	// Get the reaction react from the request body
 	var react utilities.Reaction
-	react.User = username
-	if err := json.NewDecoder(r.Body).Decode(&react); err != nil {
+	react.User = id
+	if err = json.NewDecoder(r.Body).Decode(&react); err != nil {
+		context.Logger.WithError(err).Error("json comment message decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -39,20 +35,23 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 	// Get the message id from the parameters in the path
 	idMess, err := strconv.ParseUint(params.ByName("messID"), 10, 64)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error in getting messID for commentMessage")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Add the reaction info in the database
-	if err := rt.db.AddReaction(react, idMess); err != nil {
-		http.Error(w, "Error adding reaction", http.StatusInternalServerError)
+	if err = rt.db.AddReaction(react, idMess); err != nil {
+		context.Logger.WithError(err).Error("error in adding reaction db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Return the content to the client
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(react); err != nil {
+	if err = json.NewEncoder(w).Encode(react); err != nil {
+		context.Logger.WithError(err).Error("json comment message encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

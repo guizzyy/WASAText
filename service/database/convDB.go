@@ -75,7 +75,7 @@ func (db *appdbimpl) GetConversation(convID uint64) ([]utilities.Message, error)
 
 func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uint64) error {
 	// Insert and retrieve the new conversation info in the database
-	err := db.c.QueryRow(`INSERT INTO conversation(name, type) VALUES (?, ?) RETURNING *`, grConv.Name, grConv.Type).Scan(&grConv.ID, grConv.Type, &grConv.Name, &grConv.Photo)
+	err := db.c.QueryRow(`INSERT INTO conversation(name, type) VALUES (?, ?) RETURNING id, photo`, grConv.Name, grConv.Type).Scan(&grConv.ID, &grConv.Photo)
 	if err != nil {
 		return fmt.Errorf("error in creating conversation: %w", err)
 	}
@@ -134,13 +134,27 @@ func (db *appdbimpl) LeaveGroup(idConv uint64, idUser uint64) error {
 	return nil
 }
 
-func (db *appdbimpl) GetReceiver(convID uint64, senderID uint64) (uint64, error) {
-	var receiver uint64
-	err := db.c.QueryRow(`SELECT user_id FROM memberships WHERE conv_id = ? AND user_id != ?`, convID, senderID).Scan(&receiver)
+func (db *appdbimpl) GetReceivers(convID uint64, senderID uint64) ([]uint64, error) {
+	var receivers []uint64
+	// Get the set of receivers for a given conversation (if private, it will be an array of 1 element)
+	rows, err := db.c.Query(`SELECT user_id FROM memberships WHERE conv_id = ? AND user_id != ?`, convID, senderID)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return 0, ErrMembershipNotFound
-		}
+		return nil, fmt.Errorf("error in getting receivers of the message: %w", err)
 	}
-	return receiver, nil
+	defer rows.Close()
+
+	// Scan the rows to get the receivers id
+	for rows.Next() {
+		var receiver uint64
+		if err = rows.Scan(&receiver); err != nil {
+			return nil, fmt.Errorf("error in getting receivers of the message: %w", err)
+		}
+		receivers = append(receivers, receiver)
+	}
+
+	// Check error during the scanning of the rows
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error in resulting rows of GetReceivers: %w", err)
+	}
+	return receivers, nil
 }
