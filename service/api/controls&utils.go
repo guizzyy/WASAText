@@ -29,7 +29,7 @@ func (rt *_router) checkToken(r *http.Request) (bool, uint64, error) {
 	if err != nil {
 		return false, 0, err
 	}
-	if isIn, err := rt.db.IsInDatabase(token); err != nil || !isIn {
+	if isIn, err := rt.db.IsUserInDatabase(token); err != nil || !isIn {
 		return false, 0, nil
 	}
 	return true, token, nil
@@ -40,7 +40,7 @@ func (rt *_router) checkStringFormat(name string) (bool, error) {
 	pattern := `^.*?$`
 
 	if len(name) < 3 || len(name) > 16 {
-		return false, utilities.ErrString
+		return false, utilities.ErrNameString
 	}
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -49,7 +49,7 @@ func (rt *_router) checkStringFormat(name string) (bool, error) {
 	if re.MatchString(name) {
 		return true, nil
 	} else {
-		return false, utilities.ErrString
+		return false, utilities.ErrNameString
 	}
 }
 
@@ -69,19 +69,27 @@ func (rt *_router) checkFileFormat(file multipart.File) (bool, error) {
 }
 
 func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context reqcontext.RequestContext) (string, error) {
-	// Limit the dimension of the file to 32MB
+	// Set the dimension of the request body
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
-		context.Logger.WithError(err).Error("Dimension of the file too big")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error("error during ParseMultipartForm sendMessage")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return "", err
 	}
 
-	// Get the file from the request body
+	// Get the file from the request body (if missing, return empty string)
 	file, handler, err := r.FormFile("photo")
 	if err != nil {
-		context.Logger.WithError(err).Error("Error during file upload")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return "", err
+		if errors.Is(err, http.ErrMissingFile) {
+			file = nil
+		} else {
+			context.Logger.WithError(err).Error("Error during file upload")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return "", err
+		}
+	}
+	if file == nil {
+		defer file.Close()
+		return "", nil
 	}
 	defer file.Close()
 
@@ -97,7 +105,7 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 	}
 
 	// Create a file in the folder and copy the image in it
-	filePath := filepath.Join("photos", handler.Filename)
+	filePath := filepath.Join("/photos", handler.Filename)
 	fileLocal, err := os.Create(filePath)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during file creation")

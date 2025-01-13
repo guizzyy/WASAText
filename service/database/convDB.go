@@ -1,76 +1,104 @@
 package database
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"git.guizzyy.it/WASAText/service/utilities"
 )
 
 func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, error) {
-	// TODO: manage the status of received message
-
-	// Select the conv infos where the user participates ordered by last message
+	// Get info for the conversation in the homepage (plus unread messages)
 	query := `SELECT 
-    			  c.id, c.type, c.name, c.photo, m1.text, m1.timestamp
-			  FROM 
-			      message AS m1
-			      INNER JOIN conversation AS c ON c.id = m1.conv_id  
-			      INNER JOIN memberships AS ms ON ms.conv_id = c.id
-			  WHERE 
-			      ms.user_id = ? AND m1.timestamp = (SELECT MAX(m2.timestamp) FROM message AS m2 WHERE m2.conv_id = m1.conv_id)
-			  ORDER BY 
-			      m1.timestamp DESC`
-	rows, err := db.c.Query(query, uID)
+    				c.id,
+    				c.type,
+    				c.name, 
+    				c.photo, 
+    				m.id,
+    				m.text, 
+    				m.photo, 
+    				MAX(m.timestamp) as last_message_time, 
+    				COUNT(CASE WHEN sm.info = 'Unreceived' THEN m.id END)
+				FROM 
+				    conversation AS c, message AS m, memberships AS ms, status AS sm 
+				WHERE 
+				    c.id = m.conv_id AND 
+				    c.id = ms.conv_id AND 
+				    ms.user_id = ? AND 
+				    m.id = sm.mess_id AND 
+				    sm.receiver_id = ?
+				GROUP BY 
+				    c.id 
+				ORDER BY 
+				    last_message_time DESC`
+	rows, err := db.c.Query(query, uID, uID)
 	if err != nil {
-		return nil, fmt.Errorf("error in getting conversations info: %w", err)
+		return nil, fmt.Errorf("error in getting conversations for the homepage: %w", err)
 	}
 	defer rows.Close()
 
-	// Create an array of conversation structs to return and scan the rows
-	convs := make([]utilities.Conversation, 0)
+	// Scan the rows to get conversation info and updating the status
+	var convs []utilities.Conversation
 	for rows.Next() {
+		var mess utilities.Message
+		pMess := &mess
 		var conv utilities.Conversation
-		if err := rows.Scan(&conv.ID, &conv.Type, &conv.Name, &conv.Photo, &conv.LastMess, &conv.Timestamp); err != nil {
-			return nil, fmt.Errorf("error in scanning conversation info: %w", err)
+		if err = rows.Scan(&conv.ID, &conv.Type, &conv.Name, &conv.Photo, &mess.ID, &mess.Text, &mess.Photo, &mess.Timestamp, &conv.CountUnread); err != nil {
+			return nil, fmt.Errorf("error in scanning conversations for the homepage: %w", err)
 		}
+		if err = db.UpdateReceivedStatus(pMess); err != nil {
+			return nil, fmt.Errorf("error in updating received status: %w", err)
+		}
+		conv.LastMessage = mess
 		convs = append(convs, conv)
 	}
 
-	// Check errors during the scan, otherwise return the array
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error in rows: %w", err)
+	// Check errors during the scanning of the rows
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error in resulting rows of GetConversations: %w", err)
 	}
 	return convs, nil
 }
 
-func (db *appdbimpl) GetConversation(convID uint64) ([]utilities.Message, error) {
-	// TODO: find a way to manage the status of the message situation
-	query := `SELECT 
-    			id, text, sender_id, timestamp, info 
-			  FROM 
-			    message
-			  	INNER JOIN status ON status.mess_id = message.id
-			  WHERE 
-			    conv_id = ?`
+func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Message, error) {
+	// Get all the messages for the given conversation
+	query := `SELECT
+    				m.id,
+    				m.text,
+    				m.photo,
+    				m.conv_id,
+    				m.sender_id,
+    				m.is_forwarded,
+    				m.timestamp
+				FROM
+				    message AS m, status AS s
+				WHERE
+				    m.id = s.mess_id AND
+				    m.conv_id = ?
+				ORDER BY m.timestamp DESC`
 	rows, err := db.c.Query(query, convID)
 	if err != nil {
-		return nil, fmt.Errorf("error in getting conversation: %w", err)
+		return nil, fmt.Errorf("error in getting messages in a conversation: %w", err)
 	}
 	defer rows.Close()
 
-	messages := make([]utilities.Message, 0)
+	// Scan the rows to get messages info and updating the status
+	var messages []utilities.Message
 	for rows.Next() {
-		var msg utilities.Message
-		msg.Conv = convID
-		if err := rows.Scan(&msg.ID, &msg.Text, &msg.Sender, &msg.Timestamp, &msg.Status); err != nil {
-			return nil, fmt.Errorf("error in scanning conversation info: %w", err)
+		var m utilities.Message
+		pMess := &m
+		if err = rows.Scan(&m.ID, &m.Text, &m.Photo, &m.Conv, &m.Sender, &m.IsForward, &m.Timestamp); err != nil {
+			return nil, fmt.Errorf("error in scanning messages in a conversation: %w", err)
 		}
-		if msg.Status == "Received" {
-			msg.Status = "Read"
+		if err = db.UpdateReadStatus(pMess); err != nil {
+			return nil, fmt.Errorf("error in updating read status: %w", err)
 		}
-		messages = append(messages, msg)
+		messages = append(messages, m)
 	}
+
+	// Check errors during the scanning of the rows
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error in getting messages in a conversation: %w", err)
+	}
+	return messages, nil
 }
 
 func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uint64) error {
@@ -98,7 +126,7 @@ func (db *appdbimpl) SetGroupName(group utilities.Conversation) error {
 		return fmt.Errorf("error to get affected rows in group name db function: %w", err)
 	}
 	if rows == 0 {
-		return ErrGroupNotFound
+		return ErrConversationNotFound
 	}
 	return nil
 }
@@ -113,7 +141,7 @@ func (db *appdbimpl) SetGroupPhoto(group utilities.Conversation) error {
 		return fmt.Errorf("error to get affected rows in set group photo db function: %w", err)
 	}
 	if rows == 0 {
-		return ErrGroupNotFound
+		return ErrConversationNotFound
 	}
 	return nil
 }
@@ -157,4 +185,13 @@ func (db *appdbimpl) GetReceivers(convID uint64, senderID uint64) ([]uint64, err
 		return nil, fmt.Errorf("error in resulting rows of GetReceivers: %w", err)
 	}
 	return receivers, nil
+}
+
+func (db *appdbimpl) IsGroupConv(convID uint64) (bool, error) {
+	var class string
+	row := db.c.QueryRow(`SELECT type FROM conversation WHERE id = ?`, convID).Scan(&class)
+	if row == nil {
+		return false, ErrConversationNotFound
+	}
+	return class == "group", nil
 }

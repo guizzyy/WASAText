@@ -21,7 +21,7 @@ func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, para
 		return
 	}
 
-	// TODO: modify the function because conversations must be sorted
+	// Query the database to retrieve the conversations of the user
 	convs, err := rt.db.GetConversations(id)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during GetConversations db")
@@ -31,7 +31,7 @@ func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, para
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(convs); err != nil {
+	if err = json.NewEncoder(w).Encode(convs); err != nil {
 		context.Logger.WithError(err).Error("json getConversations encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -29,8 +29,9 @@ type User struct {
 }
 
 type Message struct {
-	ID        int64     `json:"id"`
+	ID        uint64    `json:"id"`
 	Text      string    `json:"text"`
+	Photo     string    `json:"photo"`
 	Conv      uint64    `json:"conv_id"`
 	Sender    uint64    `json:"sender_id"`
 	IsForward bool      `json:"is_forwarded"`
@@ -48,12 +49,12 @@ type Notification struct {
 }
 
 type Conversation struct {
-	ID        uint64    `json:"id"`
-	Type      convType  `json:"type"`
-	Name      string    `json:"name"`
-	Photo     string    `json:"photo"`
-	LastMess  string    `json:"last_mess"`
-	Timestamp time.Time `json:"timestamp"`
+	ID          uint64   `json:"id"`
+	Type        convType `json:"type"`
+	Name        string   `json:"name"`
+	Photo       string   `json:"photo"`
+	LastMessage Message  `json:"last_message"`
+	CountUnread uint64   `json:"count_unread"`
 }
 
 type LoginResponse struct {
@@ -61,4 +62,5 @@ type LoginResponse struct {
 	UserLogged User   `json:"user"`
 }
 
-var ErrString = errors.New("invalid string format for the name")
+var ErrNameString = errors.New("invalid string format for the name (length should be between 3 and 25)")
+var ErrTextString = errors.New("invalid string format for the message (length should be between 1 and 250)")

@@ -34,8 +34,8 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.WithError(err).Error(utilities.ErrString)
-		http.Error(w, utilities.ErrString.Error(), http.StatusBadRequest)
+		context.Logger.WithError(err).Error(utilities.ErrNameString)
+		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
 		return
 	}
 

@@ -44,6 +44,17 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
+	// Control if the given conv ID is a group conversation
+	if isGroup, err := rt.db.IsGroupConv(convID); err != nil {
+		context.Logger.WithError(err).Error("error during IsGroupConv db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if !isGroup {
+		context.Logger.Error("convID is not a group for addToGroup")
+		http.Error(w, "convID is not a group for addToGroup", http.StatusBadRequest)
+		return
+	}
+
 	// Query the database to insert a new membership
 	if err = rt.db.AddToGroup(convID, userAdded); err != nil {
 		context.Logger.WithError(err).Error("error during addToGroup db")

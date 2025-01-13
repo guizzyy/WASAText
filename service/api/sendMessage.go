@@ -23,15 +23,23 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	// Get the text of the message from the request body
 	var mess utilities.Message
+	mess.Sender = id
 	pMess := &mess
-	if err = json.NewDecoder(r.Body).Decode(&mess); err != nil {
-		context.Logger.WithError(err).Error("json send message decode error")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+
+	// Get the photo file path (if an image has been sent)
+	if mess.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
+		context.Logger.WithError(err).Error("error during GetPhotoPath sendMessage")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	mess.Sender = id
+
+	// Check the correct format for the string
+	if mess.Text = r.FormValue("text"); len(mess.Text) == 0 || len(mess.Text) > 250 {
+		context.Logger.Error(utilities.ErrTextString)
+		http.Error(w, utilities.ErrTextString.Error(), http.StatusBadRequest)
+		return
+	}
 
 	// Get the conv id where to send the message from the path
 	if mess.Conv, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
@@ -48,7 +56,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(mess); err != nil {
 		context.Logger.WithError(err).Error("json send message encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

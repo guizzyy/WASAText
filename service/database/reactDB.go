@@ -20,3 +20,28 @@ func (db *appdbimpl) RemoveReaction(messId uint64, senderId uint64) error {
 	}
 	return nil
 }
+
+func (db *appdbimpl) GetReactions(messId uint64) ([]utilities.Reaction, error) {
+	var reactions []utilities.Reaction
+	// Get the reaction emojis and senders from the database
+	rows, err := db.c.Query(`SELECT reaction, sender_id FROM reactions WHERE mess_id = ?`, messId)
+	if err != nil {
+		return nil, fmt.Errorf("error getting reactions: %s", err)
+	}
+	defer rows.Close()
+
+	// Iterate the rows to save information in the array
+	for rows.Next() {
+		var reaction utilities.Reaction
+		if err = rows.Scan(&reaction.Emoji, &reaction.User); err != nil {
+			return nil, fmt.Errorf("error in scanning the rows: %s", err)
+		}
+		reactions = append(reactions, reaction)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error in iterate the rows: %s", err)
+	}
+
+	return reactions, nil
+}

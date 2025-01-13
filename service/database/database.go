@@ -50,21 +50,25 @@ type AppDatabase interface {
 	CreateGroupConv(*utilities.Conversation, uint64) error
 	AddToGroup(uint64, utilities.User) error
 	LeaveGroup(uint64, uint64) error
+	IsGroupConv(uint64) (bool, error)
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
-	GetConversation(uint64) ([]utilities.Message, error)
+	GetConversation(uint64, uint64) ([]utilities.Message, error)
 	GetReceivers(uint64, uint64) ([]uint64, error)
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64) error
 	InsertStatus([]uint64, uint64) (string, error)
+	UpdateReceivedStatus(*utilities.Message) error
+	UpdateReadStatus(*utilities.Message) error
 
 	AddReaction(utilities.Reaction, uint64) error
 	RemoveReaction(uint64, uint64) error
+	GetReactions(uint64) ([]utilities.Reaction, error)
 
 	Ping() error
-	IsInDatabase(uint64) (bool, error)
+	IsUserInDatabase(uint64) (bool, error)
 }
 
 type appdbimpl struct {
@@ -109,7 +113,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 			"message": `CREATE TABLE message (
     		id INTEGER PRIMARY KEY,
-    		text VARCHAR(250) NOT NULL CHECK ( length(text) > 0 AND length(text) <= 250 ),
+    		text VARCHAR(250) CHECK ( length(text) >= 0 AND length(text) <= 250 ),
+    		photo TEXT DEFAULT NULL,
     		conv_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
     		is_forwarded BOOLEAN NOT NULL DEFAULT FALSE,
@@ -132,7 +137,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		PRIMARY KEY (mess_id, sender_id, reaction),
     		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
-    		FOREIGN KEY (sender_id) REFERENCES users(name))`,
+    		FOREIGN KEY (sender_id) REFERENCES users(id))`,
 		}
 
 		for table, query := range tables {
@@ -149,7 +154,6 @@ func New(db *sql.DB) (AppDatabase, error) {
 }
 
 var ErrUserNotFound = errors.New("User not found")
-var ErrGroupNotFound = errors.New("Group not found")
 var ErrMessageNotFound = errors.New("Message not found")
 var ErrConversationNotFound = errors.New("Conversation not found")
 var ErrMembershipNotFound = errors.New("Membership not found")

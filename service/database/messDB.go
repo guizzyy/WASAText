@@ -9,7 +9,7 @@ import (
 
 func (db *appdbimpl) GetMessageInfo(idMess uint64) (utilities.Message, error) {
 	var msg utilities.Message
-	err := db.c.QueryRow(`SELECT text FROM message WHERE id = ?`, idMess).Scan(&msg.Text)
+	err := db.c.QueryRow(`SELECT text, photo FROM message WHERE id = ?`, idMess).Scan(&msg.Text, &msg.Photo)
 	if errors.Is(err, sql.ErrNoRows) {
 		return utilities.Message{}, ErrMessageNotFound
 	}
@@ -19,12 +19,12 @@ func (db *appdbimpl) GetMessageInfo(idMess uint64) (utilities.Message, error) {
 func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
 	// Insert the new message in the database (also with the case of forward message)
 	if mess.IsForward {
-		err := db.c.QueryRow(`INSERT INTO messages (text, conv_id, sender_id, is_forwarded) VALUES (?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Conv, mess.Sender, mess.IsForward).Scan(&mess.ID, &mess.Timestamp)
+		err := db.c.QueryRow(`INSERT INTO messages (text, photo, conv_id, sender_id, is_forwarded) VALUES (?, ?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender, mess.IsForward).Scan(&mess.ID, &mess.Timestamp)
 		if err != nil {
 			return fmt.Errorf("error adding forwarded message to database: %v", err)
 		}
 	} else {
-		err := db.c.QueryRow(`INSERT INTO messages (text, conv_id, sender_id) VALUES (?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Conv, mess.Sender).Scan(&mess.ID, &mess.Timestamp)
+		err := db.c.QueryRow(`INSERT INTO messages (text, photo, conv_id, sender_id) VALUES (?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender).Scan(&mess.ID, &mess.Timestamp)
 		if err != nil {
 			return fmt.Errorf("error adding message to database: %v", err)
 		}
@@ -61,4 +61,22 @@ func (db *appdbimpl) InsertStatus(receivers []uint64, idMess uint64) (string, er
 		}
 	}
 	return info, nil
+}
+
+func (db *appdbimpl) UpdateReadStatus(mess *utilities.Message) error {
+	_, err := db.c.Exec(`UPDATE status SET info = 'Read' WHERE mess_id = ?`, mess.ID)
+	if err != nil {
+		return fmt.Errorf("error updating status for read message to receiver: %v", err)
+	}
+	mess.Status = "Read"
+	return nil
+}
+
+func (db *appdbimpl) UpdateReceivedStatus(mess *utilities.Message) error {
+	_, err := db.c.Exec(`UPDATE status SET info = 'Received' WHERE mess_id = ?`, mess.ID)
+	if err != nil {
+		return fmt.Errorf("error updating status for read message to receiver: %v", err)
+	}
+	mess.Status = "Received"
+	return nil
 }

@@ -38,8 +38,8 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.Error(utilities.ErrString)
-		http.Error(w, utilities.ErrString.Error(), http.StatusBadRequest)
+		context.Logger.Error(utilities.ErrNameString)
+		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
 		return
 	}
 

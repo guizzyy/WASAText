@@ -365,7 +365,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Text'
+              $ref: '#/components/schemas/Message'
         required: true
       responses:
         '200':
@@ -429,6 +429,27 @@ paths:
     parameters:
       - $ref: '#/components/parameters/ConversationID'
       - $ref: '#/components/parameters/MessageID'
+
+    get:
+      tags: ["chats"]
+      summary: get a list of comments
+      description: |
+        Get a list of all the comments for an existed message,
+        it could include the sender also and the list is made of
+        user and emoji sent
+      operationId: getComments
+      responses:
+        '200':
+          description: comments retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List-of-Reaction'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError'}
+
 
     put:
       tags: ["chats"]
@@ -662,6 +683,18 @@ components:
           maxLength: 4
           pattern: '^[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1F700-\u1F77F\u1F780-\u1F7FF\u1F800-\u1F8FF\u1F900-\u1F9FF\u1FA00-\u1FA6F\u1FA70-\u1FAFF\u2600-\u26FF\u2700-\u27BF\u2300-\u23FF\u2B50\u23F0\u231A\u25AA\u25FE\u2B06\u2194\u2B05\u2195\u21A9\u21AA\u2753\u2754\u2755\u274C\u274E\u2B06\u2199]$'
           description: reacted emoji
+
+    List-of-Reaction:
+      description: List of reaction schema
+      type: object
+      properties:
+        reactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reaction'
+          minItems: 0
+          maxItems: 999
+          description: reactions found
 
     List-of-User:
       description: List of users schema
