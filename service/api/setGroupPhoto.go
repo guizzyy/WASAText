@@ -11,7 +11,7 @@ import (
 
 func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check authorization for the operation
-	isAuth, _, err := rt.checkToken(r)
+	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during checkToken")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -38,7 +38,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Set the new group photo in the database
-	if err = rt.db.SetGroupPhoto(conv); err != nil {
+	if err = rt.db.SetGroupPhoto(conv, id); err != nil {
 		context.Logger.WithError(err).Error("error during setGroupPhoto db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -139,12 +139,19 @@ func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uin
 	return nil
 }
 
-func (db *appdbimpl) SetGroupName(group utilities.Conversation) error {
+func (db *appdbimpl) SetGroupName(group utilities.Conversation, uID uint64) error {
 	// Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(group.ID); err != nil {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return fmt.Errorf("conversation is not a group")
+	}
+
+	// Check if the user who is trying to change the name is in the group
+	if isIn, err := db.IsUserInConv(group.ID, uID); err != nil {
+		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
+	} else if !isIn {
+		return fmt.Errorf("user is not in the conversation")
 	}
 
 	// Update the group name and check possible errors
@@ -162,12 +169,19 @@ func (db *appdbimpl) SetGroupName(group utilities.Conversation) error {
 	return nil
 }
 
-func (db *appdbimpl) SetGroupPhoto(group utilities.Conversation) error {
+func (db *appdbimpl) SetGroupPhoto(group utilities.Conversation, uID uint64) error {
 	// Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(group.ID); err != nil {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return fmt.Errorf("conversation is not a group")
+	}
+
+	// Check if the user who is trying to change the photo is in the group
+	if isIn, err := db.IsUserInConv(group.ID, uID); err != nil {
+		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
+	} else if !isIn {
+		return fmt.Errorf("user is not in the conversation")
 	}
 
 	// Update the group photo and check possible errors
@@ -185,7 +199,7 @@ func (db *appdbimpl) SetGroupPhoto(group utilities.Conversation) error {
 	return nil
 }
 
-func (db *appdbimpl) AddToGroup(idConv uint64, u utilities.User) error {
+func (db *appdbimpl) AddToGroup(idConv uint64, uID uint64, uAdded utilities.User) error {
 	// Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(idConv); err != nil {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
@@ -193,8 +207,22 @@ func (db *appdbimpl) AddToGroup(idConv uint64, u utilities.User) error {
 		return fmt.Errorf("conversation is not a group")
 	}
 
+	// Check if the user is in the group in order to add a new member
+	if isIn, err := db.IsUserInConv(idConv, uID); err != nil {
+		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
+	} else if !isIn {
+		return fmt.Errorf("the user is not in the group conversation")
+	}
+
+	// Check if the user added is already in the group
+	if isIn, err := db.IsUserInConv(idConv, uAdded.ID); err != nil {
+		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
+	} else if isIn {
+		return fmt.Errorf("the user is already in the group conversation")
+	}
+
 	// Insert the new membership of the user to the group conversation
-	_, err := db.c.Exec(`INSERT INTO memberships(conv_id, user_id) VALUES (?, ?)`, idConv, u.ID)
+	_, err := db.c.Exec(`INSERT INTO memberships(conv_id, user_id) VALUES (?, ?)`, idConv, uAdded.ID)
 	if err != nil {
 		return fmt.Errorf("error in adding membership to conversation: %w", err)
 	}
@@ -207,6 +235,13 @@ func (db *appdbimpl) LeaveGroup(idConv uint64, idUser uint64) error {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return fmt.Errorf("conversation is not a group")
+	}
+
+	// Check if the user is in the group
+	if isIn, err := db.IsUserInConv(idConv, idUser); err != nil {
+		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
+	} else if !isIn {
+		return fmt.Errorf("the user is not in the group conversation")
 	}
 
 	// Delete the membership of the user id from the conversation

@@ -11,7 +11,7 @@ import (
 
 func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check authorization for the operation
-	isAuth, _, err := rt.checkToken(r)
+	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during checkToken")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -49,7 +49,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 	}
 
 	// Set the new group name in the database
-	if err = rt.db.SetGroupName(conv); err != nil {
+	if err = rt.db.SetGroupName(conv, id); err != nil {
 		context.Logger.WithError(err).Error("error during set group name db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

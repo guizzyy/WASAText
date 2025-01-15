@@ -11,7 +11,7 @@ import (
 
 func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check authorization for the operation
-	isAuth, _, err := rt.checkToken(r)
+	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during checkToken")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -46,7 +46,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 	}
 
 	// Query the database to insert a new membership
-	if err = rt.db.AddToGroup(convID, userAdded); err != nil {
+	if err = rt.db.AddToGroup(convID, id, userAdded); err != nil {
 		context.Logger.WithError(err).Error("error during addToGroup db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

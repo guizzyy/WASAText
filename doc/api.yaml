@@ -12,6 +12,9 @@ info:
     email: guzmanaguirre.2006301@studenti.uniroma1.it
     url: https://github.com/guizzyy
 
+servers:
+  - url: http://localhost:3000
+
 tags:
   - name: "login"
     description: tag for login session operation
@@ -493,12 +496,6 @@ paths:
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
-
-  /conversations/{convID}/messages/{messID}/reactions/{reactID}:
-    parameters:
-      - $ref: '#/components/parameters/ConversationID'
-      - $ref: '#/components/parameters/MessageID'
-      - $ref: '#/components/parameters/ReactionID'
 
     delete:
       tags: ["chats"]

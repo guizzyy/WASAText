@@ -45,11 +45,11 @@ type AppDatabase interface {
 	GetUsers(string, uint64) ([]utilities.User, error)
 	GetUserByUsername(user *utilities.User) error
 
-	SetGroupName(utilities.Conversation) error
-	SetGroupPhoto(utilities.Conversation) error
+	SetGroupName(utilities.Conversation, uint64) error
+	SetGroupPhoto(utilities.Conversation, uint64) error
 	CreatePrivConv(uint64, utilities.User) (utilities.Conversation, error)
 	CreateGroupConv(*utilities.Conversation, uint64) error
-	AddToGroup(uint64, utilities.User) error
+	AddToGroup(uint64, uint64, utilities.User) error
 	LeaveGroup(uint64, uint64) error
 	IsGroupConv(uint64) (bool, error)
 	IsUserInConv(uint64, uint64) (bool, error)
@@ -116,21 +116,21 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 			"message": `CREATE TABLE message (
     		id INTEGER PRIMARY KEY,
-    		text VARCHAR(250) CHECK ( length(text) >= 0 AND length(text) <= 250 ),
+    		text VARCHAR(250) CHECK ( length(text) > 0 AND length(text) <= 250 ),
     		photo TEXT DEFAULT NULL,
     		conv_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
     		is_forwarded BOOLEAN NOT NULL DEFAULT FALSE,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		FOREIGN KEY (conv_id) REFERENCES conversation(id),
-    		FOREIGN KEY (sender_id) REFERENCES users(id))`,
+    		FOREIGN KEY (sender_id) REFERENCES user(id))`,
 
 			"status": `CREATE TABLE status (
     		receiver_id INTEGER NOT NULL,
     		mess_id INTEGER NOT NULL,
     		info TEXT DEFAULT 'Unreceived' CHECK ( info IN ('Read', 'Received', 'Unreceived') ),
     		FOREIGN KEY (mess_id) REFERENCES message(id) ON DELETE CASCADE,
-    		FOREIGN KEY (receiver_id) REFERENCES users(id),
+    		FOREIGN KEY (receiver_id) REFERENCES user(id),
     		PRIMARY KEY (mess_id, receiver_id))`,
 
 			"reactions": `CREATE TABLE reactions (
@@ -140,11 +140,11 @@ func New(db *sql.DB) (AppDatabase, error) {
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		PRIMARY KEY (mess_id, sender_id, reaction),
     		FOREIGN KEY (mess_id) REFERENCES message(id) ON DELETE CASCADE,
-    		FOREIGN KEY (sender_id) REFERENCES users(id))`,
+    		FOREIGN KEY (sender_id) REFERENCES user(id))`,
 		}
 
 		for table, query := range tables {
-			if _, err := db.Exec(query); err != nil {
+			if _, err = db.Exec(query); err != nil {
 				return nil, fmt.Errorf("error creating table %s: %v", table, err)
 			}
 		}
