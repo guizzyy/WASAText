@@ -49,7 +49,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 
 	// Return the content to the client
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(react); err != nil {
 		context.Logger.WithError(err).Error("json comment message encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

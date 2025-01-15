@@ -5,23 +5,6 @@ import (
 	"time"
 )
 
-/*
-type messStatus string
-
-const (
-	StatusReceived   messStatus = "Received"
-	StatusRead       messStatus = "Read"
-	StatusUnreceived messStatus = "Unreceived"
-)
-*/
-
-type convType string
-
-const (
-	Private convType = "private"
-	Group   convType = "group"
-)
-
 type User struct {
 	ID       uint64 `json:"id"`
 	Username string `json:"username"`
@@ -49,12 +32,12 @@ type Notification struct {
 }
 
 type Conversation struct {
-	ID          uint64   `json:"id"`
-	Type        convType `json:"type"`
-	Name        string   `json:"name"`
-	Photo       string   `json:"photo"`
-	LastMessage Message  `json:"last_message"`
-	CountUnread uint64   `json:"count_unread"`
+	ID          uint64  `json:"id"`
+	Type        string  `json:"type"`
+	Name        string  `json:"name"`
+	Photo       string  `json:"photo"`
+	LastMessage Message `json:"last_message"`
+	CountUnread uint64  `json:"count_unread"`
 }
 
 type LoginResponse struct {

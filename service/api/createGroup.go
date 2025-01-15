@@ -52,9 +52,10 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(group); err != nil {
 		context.Logger.WithError(err).Error("json create group encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

@@ -25,9 +25,9 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 
 	var conv utilities.Conversation
 
-	//Get the photo from the request body and save the file path; get the gorup id
+	//Get the photo from the request body and save the file path; get the group id
 	if conv.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
-		context.Logger.WithError(err).Error("error during get photo path")
+		context.Logger.WithError(err).Error("error during get photo path setGroupPhoto")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -52,5 +52,6 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 	if err = json.NewEncoder(w).Encode(response); err != nil {
 		context.Logger.WithError(err).Error("json set group photo encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

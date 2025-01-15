@@ -8,13 +8,16 @@ import (
 )
 
 func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
+	// Select info about the user from the database to figure if it's a new/existing user
 	err := db.c.QueryRow(`SELECT id, photo FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &u.Photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			// If the user is new, insert him in the database
 			err := db.c.QueryRow(`INSERT INTO user(name) VALUES (?) RETURNING id, photo`, u.Username).Scan(&u.ID, &u.Photo)
 			if err != nil {
 				return false, fmt.Errorf("failed to insert a new user: %w", err)
 			}
+			return true, nil
 		}
 		return false, fmt.Errorf("failed to query user table for login: %w", err)
 	}
@@ -22,6 +25,14 @@ func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
 }
 
 func (db *appdbimpl) SetUsername(u utilities.User) error {
+	// Check if the username selected is available
+	if isAvailable, err := db.IsUsernameInDatabase(u.Username); err != nil {
+		return err
+	} else if !isAvailable {
+		return errors.New("username is already taken")
+	}
+
+	// Update the database with the new username given and check errors
 	res, err := db.c.Exec(`UPDATE user SET name = ? WHERE id = ?`, u.Username, u.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
@@ -37,7 +48,8 @@ func (db *appdbimpl) SetUsername(u utilities.User) error {
 }
 
 func (db *appdbimpl) SetPhoto(u utilities.User) error {
-	res, err := db.c.Exec(`UPDATE users SET photo = ? WHERE id = ?`, u.Photo, u.ID)
+	// Update the database with the new photo given and check errors
+	res, err := db.c.Exec(`UPDATE user SET photo = ? WHERE id = ?`, u.Photo, u.ID)
 	if err != nil {
 		return err
 	}
@@ -64,25 +76,24 @@ func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, err
 	for rows.Next() {
 		var user utilities.User
 		if err := rows.Scan(&user.Username, &user.Photo); err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
+			return nil, fmt.Errorf("error in scanning users info for search: %w", err)
 		}
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to iterate rows: %w", err)
+		return nil, fmt.Errorf("error in resulting rows in GetUsers: %w", err)
 	}
 
 	return users, nil
 }
 
-func (db *appdbimpl) GetIDByUsername(username string) (uint64, error) {
-	var uID uint64
-	err := db.c.QueryRow("SELECT id FROM user WHERE name = ?", username).Scan(&uID)
+func (db *appdbimpl) GetUserByUsername(u *utilities.User) error {
+	err := db.c.QueryRow(`SELECT * FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &u.Username, &u.Photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, ErrUserNotFound
+			return ErrUserNotFound
 		}
-		return 0, fmt.Errorf("failed to get the username from database: %w", err)
+		return fmt.Errorf("failed to retrieve user info from db: %w", err)
 	}
-	return uID, nil
+	return nil
 }

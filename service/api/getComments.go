@@ -43,5 +43,6 @@ func (rt *_router) getComments(w http.ResponseWriter, r *http.Request, params ht
 	if err = json.NewEncoder(w).Encode(reactions); err != nil {
 		context.Logger.WithError(err).Error("json get comments encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

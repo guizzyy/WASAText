@@ -38,7 +38,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.WithError(err).Error(utilities.ErrNameString)
+		context.Logger.Error(utilities.ErrNameString)
 		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
 		return
 	}

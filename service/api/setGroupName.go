@@ -37,6 +37,17 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
+	// Check if the new name has the correct format
+	if check, err := rt.checkStringFormat(conv.Name); err != nil {
+		context.Logger.WithError(err).Error("error during string format check")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if !check {
+		context.Logger.Error(utilities.ErrNameString)
+		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// Set the new group name in the database
 	if err = rt.db.SetGroupName(conv); err != nil {
 		context.Logger.WithError(err).Error("error during set group name db")
@@ -53,5 +64,6 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 	if err = json.NewEncoder(w).Encode(response); err != nil {
 		context.Logger.WithError(err).Error("json set group name encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

@@ -17,7 +17,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("setMyPhoto not unauthorized")
+		context.Logger.Error("setMyPhoto not unauthorized")
 		http.Error(w, "setMyPhoto operation not allowed", http.StatusUnauthorized)
 		return
 	}

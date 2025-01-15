@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
 	"git.guizzyy.it/WASAText/service/utilities"
+	"github.com/google/uuid"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -30,7 +31,7 @@ func (rt *_router) checkToken(r *http.Request) (bool, uint64, error) {
 		return false, 0, err
 	}
 	if isIn, err := rt.db.IsUserInDatabase(token); err != nil || !isIn {
-		return false, 0, nil
+		return false, 0, err
 	}
 	return true, token, nil
 }
@@ -89,7 +90,7 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 	}
 	if file == nil {
 		defer file.Close()
-		return "", nil
+		return "", err
 	}
 	defer file.Close()
 
@@ -99,13 +100,14 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return "", err
 	} else if !isImage {
-		context.Logger.WithError(err).Error("File is not an image")
+		context.Logger.Error("File is not an image")
 		http.Error(w, "Not a file image uploaded", http.StatusBadRequest)
 		return "", err
 	}
 
-	// Create a file in the folder and copy the image in it
-	filePath := filepath.Join("/photos", handler.Filename)
+	// Create a file in the folder (unique name) and copy the image in it
+	uniqueFile := fmt.Sprintf("%s%s", uuid.New().String(), filepath.Ext(handler.Filename))
+	filePath := filepath.Join("/photos", uniqueFile)
 	fileLocal, err := os.Create(filePath)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during file creation")

@@ -9,7 +9,7 @@ import (
 
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check authorization for the operation
-	isAuth, _, err := rt.checkToken(r)
+	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during checkToken")
 		http.Error(w, "Error checking the token", http.StatusInternalServerError)
@@ -30,7 +30,7 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Query the database to delete the message
-	if err = rt.db.RemoveMessage(mess_id); err != nil {
+	if err = rt.db.RemoveMessage(mess_id, id); err != nil {
 		context.Logger.WithError(err).Error("error in deleting message db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

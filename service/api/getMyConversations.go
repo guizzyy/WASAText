@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
+func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check the authorization for the operation
 	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
@@ -16,8 +16,8 @@ func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, para
 		return
 	}
 	if !isAuth {
-		context.Logger.WithError(err).Error("getConversations not authorized")
-		http.Error(w, "getConversations operation not allowed", http.StatusUnauthorized)
+		context.Logger.WithError(err).Error("getMyConversations not authorized")
+		http.Error(w, "getMyConversations operation not allowed", http.StatusUnauthorized)
 		return
 	}
 
@@ -32,7 +32,7 @@ func (rt *_router) getConversations(w http.ResponseWriter, r *http.Request, para
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(convs); err != nil {
-		context.Logger.WithError(err).Error("json getConversations encode error")
+		context.Logger.WithError(err).Error("json getMyConversations encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

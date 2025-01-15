@@ -15,7 +15,7 @@ func (db *appdbimpl) IsUserInDatabase(uID uint64) (bool, error) {
 		}
 		return false, fmt.Errorf("error during IsUserInDatabase: %w", err)
 	}
-	return true, nil
+	return count > 0, nil
 }
 
 func (db *appdbimpl) IsConvInDatabase(cID uint64) (bool, error) {
@@ -27,7 +27,7 @@ func (db *appdbimpl) IsConvInDatabase(cID uint64) (bool, error) {
 		}
 		return false, fmt.Errorf("error during IsConvInDatabase: %w", err)
 	}
-	return true, nil
+	return count > 0, nil
 }
 
 func (db *appdbimpl) IsMessageInDatabase(mID uint64) (bool, error) {
@@ -39,7 +39,7 @@ func (db *appdbimpl) IsMessageInDatabase(mID uint64) (bool, error) {
 		}
 		return false, fmt.Errorf("error during IsMessageInDatabase: %w", err)
 	}
-	return true, nil
+	return count > 0, nil
 }
 
 func (db *appdbimpl) IsReactionInDatabase(react string, mID uint64, uID uint64) (bool, error) {
@@ -51,7 +51,7 @@ func (db *appdbimpl) IsReactionInDatabase(react string, mID uint64, uID uint64) 
 		}
 		return false, fmt.Errorf("error during IsReactionInDatabase: %w", err)
 	}
-	return true, nil
+	return count > 0, nil
 }
 
 func (db *appdbimpl) IsMembershipInDatabase(uID uint64, cID uint64) (bool, error) {
@@ -63,5 +63,17 @@ func (db *appdbimpl) IsMembershipInDatabase(uID uint64, cID uint64) (bool, error
 		}
 		return false, fmt.Errorf("error during IsMembershipInDatabase: %w", err)
 	}
-	return true, nil
+	return count > 0, nil
+}
+
+func (db *appdbimpl) IsUsernameInDatabase(username string) (bool, error) {
+	var count int
+	err := db.c.QueryRow(`SELECT 1 FROM user WHERE name = ? LIMIT 1`, username).Scan(&count)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, ErrUserNotFound
+		}
+		return false, fmt.Errorf("error during IsUsernameInDatabase: %w", err)
+	}
+	return count > 0, nil
 }

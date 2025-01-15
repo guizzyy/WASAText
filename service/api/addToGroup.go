@@ -25,12 +25,13 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 
 	// Get info about user we want to add
 	var userAdded utilities.User
-	if err := json.NewDecoder(r.Body).Decode(&userAdded); err != nil {
+	pUser := &userAdded
+	if err = json.NewDecoder(r.Body).Decode(&userAdded); err != nil {
 		context.Logger.WithError(err).Error("json add to group decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if userAdded.ID, err = rt.db.GetIDByUsername(userAdded.Username); err != nil {
+	if err = rt.db.GetUserByUsername(pUser); err != nil {
 		context.Logger.WithError(err).Error("error during getIDByUsername db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -41,17 +42,6 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 	if err != nil {
 		context.Logger.WithError(err).Error("error in getting convID for addToGroup")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Control if the given conv ID is a group conversation
-	if isGroup, err := rt.db.IsGroupConv(convID); err != nil {
-		context.Logger.WithError(err).Error("error during IsGroupConv db")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	} else if !isGroup {
-		context.Logger.Error("convID is not a group for addToGroup")
-		http.Error(w, "convID is not a group for addToGroup", http.StatusBadRequest)
 		return
 	}
 
@@ -71,5 +61,6 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, params htt
 	if err = json.NewEncoder(w).Encode(response); err != nil {
 		context.Logger.WithError(err).Error("json add to group encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

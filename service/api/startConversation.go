@@ -10,7 +10,7 @@ import (
 
 func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check the authorization for the operation
-	isAuth, _, err := rt.checkToken(r)
+	isAuth, id, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during checkToken")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -24,7 +24,8 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 
 	// Retrieve and check the format of the username in the request body
 	var receiver utilities.User
-	if err := json.NewDecoder(r.Body).Decode(&receiver); err != nil {
+	pReceiver := &receiver
+	if err = json.NewDecoder(r.Body).Decode(&receiver); err != nil {
 		context.Logger.WithError(err).Error("json start conv decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -34,10 +35,31 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.WithError(err).Error(utilities.ErrNameString)
+		context.Logger.Error(utilities.ErrNameString)
 		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// TODO: find a way to manage the redundancy of private conversations
+	// Query the database for receiver info
+	if err = rt.db.GetUserByUsername(pReceiver); err != nil {
+		context.Logger.WithError(err).Error("error during getUserByUsername db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Insert the new conversation in the database
+	conv, err := rt.db.CreatePrivConv(id, receiver)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during CreatePrivConv db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	if err = json.NewEncoder(w).Encode(conv); err != nil {
+		context.Logger.WithError(err).Error("json start conv encode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

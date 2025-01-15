@@ -31,7 +31,6 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 	}
 
 	// Query the database to retrieve all messages for the conversation
-	// TODO: finish function in the database
 	messages, err := rt.db.GetConversation(convID, id)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during getConversation db")
@@ -44,5 +43,6 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 	if err = json.NewEncoder(w).Encode(messages); err != nil {
 		context.Logger.WithError(err).Error("json get conversation encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

@@ -61,5 +61,6 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params
 	if err = json.NewEncoder(w).Encode(pMess); err != nil {
 		context.Logger.WithError(err).Error("json forward message encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

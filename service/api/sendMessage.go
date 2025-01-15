@@ -60,5 +60,6 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 	if err = json.NewEncoder(w).Encode(mess); err != nil {
 		context.Logger.WithError(err).Error("json send message encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

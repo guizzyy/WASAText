@@ -43,25 +43,28 @@ type AppDatabase interface {
 	SetUsername(utilities.User) error
 	SetPhoto(utilities.User) error
 	GetUsers(string, uint64) ([]utilities.User, error)
-	GetIDByUsername(string) (uint64, error)
+	GetUserByUsername(user *utilities.User) error
 
 	SetGroupName(utilities.Conversation) error
 	SetGroupPhoto(utilities.Conversation) error
+	CreatePrivConv(uint64, utilities.User) (utilities.Conversation, error)
 	CreateGroupConv(*utilities.Conversation, uint64) error
 	AddToGroup(uint64, utilities.User) error
 	LeaveGroup(uint64, uint64) error
 	IsGroupConv(uint64) (bool, error)
+	IsUserInConv(uint64, uint64) (bool, error)
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
 	GetConversation(uint64, uint64) ([]utilities.Message, error)
 	GetReceivers(uint64, uint64) ([]uint64, error)
+	GetMembers(uint64, uint64) ([]utilities.User, error)
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
-	RemoveMessage(uint64) error
-	InsertStatus([]uint64, uint64) (string, error)
-	UpdateReceivedStatus(*utilities.Message) error
-	UpdateReadStatus(*utilities.Message) error
+	RemoveMessage(uint64, uint64) error
+	InsertStatus([]uint64, uint64, uint64) (string, error)
+	UpdateReceivedStatus(uint64, uint64) error
+	UpdateReadStatus(*utilities.Message, uint64, uint64) error
 
 	AddReaction(utilities.Reaction, uint64) error
 	RemoveReaction(uint64, uint64) error
@@ -119,14 +122,14 @@ func New(db *sql.DB) (AppDatabase, error) {
     		sender_id INTEGER NOT NULL,
     		is_forwarded BOOLEAN NOT NULL DEFAULT FALSE,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    		FOREIGN KEY (conv_id) REFERENCES conversations(id),
+    		FOREIGN KEY (conv_id) REFERENCES conversation(id),
     		FOREIGN KEY (sender_id) REFERENCES users(id))`,
 
 			"status": `CREATE TABLE status (
     		receiver_id INTEGER NOT NULL,
     		mess_id INTEGER NOT NULL,
     		info TEXT DEFAULT 'Unreceived' CHECK ( info IN ('Read', 'Received', 'Unreceived') ),
-    		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
+    		FOREIGN KEY (mess_id) REFERENCES message(id) ON DELETE CASCADE,
     		FOREIGN KEY (receiver_id) REFERENCES users(id),
     		PRIMARY KEY (mess_id, receiver_id))`,
 
@@ -136,7 +139,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		sender_id INTEGER NOT NULL,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		PRIMARY KEY (mess_id, sender_id, reaction),
-    		FOREIGN KEY (mess_id) REFERENCES messages(id) ON DELETE CASCADE,
+    		FOREIGN KEY (mess_id) REFERENCES message(id) ON DELETE CASCADE,
     		FOREIGN KEY (sender_id) REFERENCES users(id))`,
 		}
 
