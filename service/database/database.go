@@ -97,24 +97,24 @@ func New(db *sql.DB) (AppDatabase, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 
 		tables := map[string]string{
-			"user": `CREATE TABLE user (
+			"user": `CREATE TABLE IF NOT EXISTS user (
     		id INTEGER PRIMARY KEY, 
     		name VARCHAR(16) UNIQUE NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
     		photo TEXT DEFAULT NULL)`,
 
-			"conversation": `CREATE TABLE conversation (
+			"conversation": `CREATE TABLE IF NOT EXISTS conversation (
     		id INTEGER PRIMARY KEY,
     		type TEXT CHECK ( type IN ('private', 'group') ),
     		name VARCHAR(25) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 25 ))`,
 
-			"membership": `CREATE TABLE membership (
+			"membership": `CREATE TABLE IF NOT EXISTS membership (
     		conv_id INTEGER NOT NULL,
     		user_id INTEGER NOT NULL,
     		UNIQUE (conv_id, user_id),
     		FOREIGN KEY (conv_id) REFERENCES conversation(id),
     		FOREIGN KEY (user_id) REFERENCES user(id))`,
 
-			"message": `CREATE TABLE message (
+			"message": `CREATE TABLE IF NOT EXISTS message (
     		id INTEGER PRIMARY KEY,
     		text VARCHAR(250) CHECK ( length(text) > 0 AND length(text) <= 250 ),
     		photo TEXT DEFAULT NULL,
@@ -125,7 +125,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		FOREIGN KEY (conv_id) REFERENCES conversation(id),
     		FOREIGN KEY (sender_id) REFERENCES user(id))`,
 
-			"status": `CREATE TABLE status (
+			"status": `CREATE TABLE IF NOT EXISTS status (
     		receiver_id INTEGER NOT NULL,
     		mess_id INTEGER NOT NULL,
     		info TEXT DEFAULT 'Unreceived' CHECK ( info IN ('Read', 'Received', 'Unreceived') ),
@@ -133,7 +133,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		FOREIGN KEY (receiver_id) REFERENCES user(id),
     		PRIMARY KEY (mess_id, receiver_id))`,
 
-			"reactions": `CREATE TABLE reactions (
+			"reactions": `CREATE TABLE IF NOT EXISTS reactions (
     		reaction TEXT NOT NULL,
     		mess_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,

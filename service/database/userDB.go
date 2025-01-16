@@ -9,17 +9,21 @@ import (
 
 func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
 	// Select info about the user from the database to figure if it's a new/existing user
-	err := db.c.QueryRow(`SELECT id, photo FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &u.Photo)
+	var photo sql.NullString
+	err := db.c.QueryRow(`SELECT id, photo FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// If the user is new, insert him in the database
-			err := db.c.QueryRow(`INSERT INTO user(name) VALUES (?) RETURNING id, photo`, u.Username).Scan(&u.ID, &u.Photo)
+			err := db.c.QueryRow(`INSERT INTO user(name) VALUES (?) RETURNING id`, u.Username).Scan(&u.ID)
 			if err != nil {
 				return false, fmt.Errorf("failed to insert a new user: %w", err)
 			}
 			return true, nil
 		}
 		return false, fmt.Errorf("failed to query user table for login: %w", err)
+	}
+	if photo.Valid {
+		u.Photo = photo.String
 	}
 	return false, nil
 }
