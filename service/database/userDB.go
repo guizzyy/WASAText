@@ -30,9 +30,9 @@ func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
 
 func (db *appdbimpl) SetUsername(u utilities.User) error {
 	// Check if the username selected is available
-	if isAvailable, err := db.IsUsernameInDatabase(u.Username); err != nil {
+	if isIn, err := db.IsUsernameInDatabase(u.Username); err != nil {
 		return err
-	} else if !isAvailable {
+	} else if isIn {
 		return errors.New("username is already taken")
 	}
 
@@ -79,9 +79,11 @@ func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, err
 	var users []utilities.User
 	for rows.Next() {
 		var user utilities.User
-		if err := rows.Scan(&user.Username, &user.Photo); err != nil {
+		var photo sql.NullString
+		if err := rows.Scan(&user.Username, &photo); err != nil {
 			return nil, fmt.Errorf("error in scanning users info for search: %w", err)
 		}
+		user.Photo = photo.String
 		users = append(users, user)
 	}
 	if err := rows.Err(); err != nil {
@@ -92,12 +94,26 @@ func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, err
 }
 
 func (db *appdbimpl) GetUserByUsername(u *utilities.User) error {
-	err := db.c.QueryRow(`SELECT * FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &u.Username, &u.Photo)
+	var photo sql.NullString
+	err := db.c.QueryRow(`SELECT * FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &u.Username, &photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrUserNotFound
 		}
 		return fmt.Errorf("failed to retrieve user info from db: %w", err)
 	}
+	u.Photo = photo.String
 	return nil
+}
+
+func (db *appdbimpl) GetUserByID(uID uint64) (utilities.User, error) {
+	var user utilities.User
+	err := db.c.QueryRow(`SELECT * FROM user WHERE id = ?`, uID).Scan(&user.ID, &user.Username, &user.Photo)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return user, ErrUserNotFound
+		}
+		return user, fmt.Errorf("failed to retrieve user from db: %w", err)
+	}
+	return user, nil
 }

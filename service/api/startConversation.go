@@ -47,8 +47,16 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 
+	// Query the database for the user info
+	user, err := rt.db.GetUserByID(id)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during getUserByID db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Insert the new conversation in the database
-	conv, err := rt.db.CreatePrivConv(id, receiver)
+	conv, err := rt.db.CreatePrivConv(user, receiver)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during CreatePrivConv db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

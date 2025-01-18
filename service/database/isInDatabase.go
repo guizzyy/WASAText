@@ -71,7 +71,7 @@ func (db *appdbimpl) IsUsernameInDatabase(username string) (bool, error) {
 	err := db.c.QueryRow(`SELECT 1 FROM user WHERE name = ? LIMIT 1`, username).Scan(&count)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, ErrUserNotFound
+			return false, nil
 		}
 		return false, fmt.Errorf("error during IsUsernameInDatabase: %w", err)
 	}

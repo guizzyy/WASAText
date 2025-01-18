@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
-	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
@@ -24,13 +23,9 @@ func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, params ht
 
 	// Get the username wanted from the query and check if it's valid
 	username := r.URL.Query().Get("username")
-	if check, err := rt.checkStringFormat(username); err != nil {
-		context.Logger.WithError(err).Error("error during string format check")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	} else if !check {
-		context.Logger.Error(utilities.ErrNameString)
-		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
+	if username == "" {
+		context.Logger.Error("write at least one letter to search users")
+		http.Error(w, "searchUsers operation empty string", http.StatusBadRequest)
 		return
 	}
 

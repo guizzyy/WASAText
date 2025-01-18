@@ -71,7 +71,7 @@ func (rt *_router) checkFileFormat(file multipart.File) (bool, error) {
 
 func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context reqcontext.RequestContext) (string, error) {
 	// Set the dimension of the request body
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	if err := r.ParseMultipartForm(1 << 20); err != nil {
 		context.Logger.WithError(err).Error("error during ParseMultipartForm sendMessage")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return "", err
@@ -106,8 +106,8 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 	}
 
 	// Create a file in the folder (unique name) and copy the image in it
-	uniqueFile := fmt.Sprintf("%s%s", uuid.New().String(), filepath.Ext(handler.Filename))
-	filePath := filepath.Join("/photos", uniqueFile)
+	uniqueFile := fmt.Sprintf("%s_%s", uuid.New().String(), filepath.Ext(handler.Filename))
+	filePath := filepath.Join("service/api/photos", uniqueFile)
 	fileLocal, err := os.Create(filePath)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during file creation")
@@ -122,4 +122,11 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 		return "", err
 	}
 	return filePath, nil
+}
+
+func (rt *_router) DeletePhotoPath(oldPhoto string) error {
+	if err := os.Remove(oldPhoto); err != nil {
+		return err
+	}
+	return nil
 }

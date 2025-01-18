@@ -21,7 +21,6 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		http.Error(w, "setMyPhoto operation not allowed", http.StatusUnauthorized)
 		return
 	}
-	var user utilities.User
 
 	// Get the photo from the request body and save the file path
 	filePath, err := rt.GetPhotoPath(w, r, context)
@@ -29,6 +28,21 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		context.Logger.WithError(err).Error("Error during get photo path")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Delete the previous user photo if there was an existing one
+	user, err := rt.db.GetUserByID(id)
+	if err != nil {
+		context.Logger.WithError(err).Error("Error during get current user photo db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if user.Photo != "" {
+		if err = rt.DeletePhotoPath(user.Photo); err != nil {
+			context.Logger.WithError(err).Error("Error during delete current user photo path")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Insert/Update the photo path in the database

@@ -19,7 +19,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/memberships/:convID", rt.wrap(rt.getMembers))
 
 	// Message operations
-	rt.router.POST("/conversation/:convID/messages/:messI D", rt.wrap(rt.forwardMessage))
+	rt.router.POST("/conversation/:convID/messages/:messID", rt.wrap(rt.forwardMessage))
 	rt.router.DELETE("/conversation/:convID/messages/:messID", rt.wrap(rt.deleteMessage))
 	rt.router.POST("/conversation/:convID/messages", rt.wrap(rt.sendMessage))
 

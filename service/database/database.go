@@ -44,20 +44,23 @@ type AppDatabase interface {
 	SetPhoto(utilities.User) error
 	GetUsers(string, uint64) ([]utilities.User, error)
 	GetUserByUsername(user *utilities.User) error
+	GetUserByID(uint64) (utilities.User, error)
 
 	SetGroupName(utilities.Conversation, uint64) error
 	SetGroupPhoto(utilities.Conversation, uint64) error
-	CreatePrivConv(uint64, utilities.User) (utilities.Conversation, error)
+	CreatePrivConv(utilities.User, utilities.User) (utilities.Conversation, error)
 	CreateGroupConv(*utilities.Conversation, uint64) error
 	AddToGroup(uint64, uint64, utilities.User) error
 	LeaveGroup(uint64, uint64) error
 	IsGroupConv(uint64) (bool, error)
 	IsUserInConv(uint64, uint64) (bool, error)
+	PrivConvExists(utilities.User, utilities.User) (bool, utilities.Conversation, error)
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
 	GetConversation(uint64, uint64) ([]utilities.Message, error)
 	GetReceivers(uint64, uint64) ([]uint64, error)
 	GetMembers(uint64, uint64) ([]utilities.User, error)
+	GetConvPhoto(uint64) (string, error)
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
@@ -105,7 +108,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 			"conversation": `CREATE TABLE IF NOT EXISTS conversation (
     		id INTEGER PRIMARY KEY,
     		type TEXT CHECK ( type IN ('private', 'group') ),
-    		name VARCHAR(25) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 25 ))`,
+    		name VARCHAR(25) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 25 ),
+    		photo TEXT DEFAULT NULL)`,
 
 			"membership": `CREATE TABLE IF NOT EXISTS membership (
     		conv_id INTEGER NOT NULL,
@@ -128,10 +132,12 @@ func New(db *sql.DB) (AppDatabase, error) {
 			"status": `CREATE TABLE IF NOT EXISTS status (
     		receiver_id INTEGER NOT NULL,
     		mess_id INTEGER NOT NULL,
+    		conv_id INTEGER NOT NULL,
     		info TEXT DEFAULT 'Unreceived' CHECK ( info IN ('Read', 'Received', 'Unreceived') ),
     		FOREIGN KEY (mess_id) REFERENCES message(id) ON DELETE CASCADE,
     		FOREIGN KEY (receiver_id) REFERENCES user(id),
-    		PRIMARY KEY (mess_id, receiver_id))`,
+    		FOREIGN KEY (conv_id) REFERENCES conversation(id),
+    		PRIMARY KEY (mess_id, receiver_id, conv_id))`,
 
 			"reactions": `CREATE TABLE IF NOT EXISTS reactions (
     		reaction TEXT NOT NULL,

@@ -1,0 +1,10 @@
+***TODO***: change disposition of go files for code legibility
+***TODO***: change paths in the api
+***TODO***: test all the function with curls
+***TODO***: manage the null photo error in string
+***TODO***: manage startConversation (double conversation created)
+
+// Things to change once you get your degree
+***TODO***: change the photo path names with user ids (maybe directory)
+***TODO***: delete not only your messages (it still display in another account)
+***TODO***: check correspond between token and id in url
