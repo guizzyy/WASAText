@@ -56,7 +56,7 @@ func (db *appdbimpl) IsReactionInDatabase(react string, mID uint64, uID uint64) 
 
 func (db *appdbimpl) IsMembershipInDatabase(uID uint64, cID uint64) (bool, error) {
 	var count int
-	err := db.c.QueryRow(`SELECT 1 FROM memberships WHERE (conv_id, user_id) = (?, ?) LIMIT 1`, cID, uID).Scan(&count)
+	err := db.c.QueryRow(`SELECT 1 FROM membership WHERE (conv_id, user_id) = (?, ?) LIMIT 1`, cID, uID).Scan(&count)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, ErrMembershipNotFound

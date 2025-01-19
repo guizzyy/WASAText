@@ -55,19 +55,24 @@ type AppDatabase interface {
 	IsGroupConv(uint64) (bool, error)
 	IsUserInConv(uint64, uint64) (bool, error)
 	PrivConvExists(utilities.User, utilities.User) (bool, utilities.Conversation, error)
+	GroupStillExists(uint64) error
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
 	GetConversation(uint64, uint64) ([]utilities.Message, error)
 	GetReceivers(uint64, uint64) ([]uint64, error)
 	GetMembers(uint64, uint64) ([]utilities.User, error)
 	GetConvPhoto(uint64) (string, error)
+	GetPrivConvInfo(uint64, uint64) (string, string, error)
+	GetGroupConvInfo(uint64) (string, string, error)
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64, uint64) error
 	InsertStatus([]uint64, uint64, uint64) (string, error)
-	UpdateReceivedStatus(uint64, uint64) error
-	UpdateReadStatus(*utilities.Message, uint64, uint64) error
+	UpdateReceivedStatus(uint64) error
+	UpdateReadStatus(uint64, uint64) error
+	IsOwnerMessage(uint64, uint64) (bool, error)
+	IsMessageInConv(uint64, uint64) (bool, error)
 
 	AddReaction(utilities.Reaction, uint64) error
 	RemoveReaction(uint64, uint64) error
@@ -75,6 +80,11 @@ type AppDatabase interface {
 
 	Ping() error
 	IsUserInDatabase(uint64) (bool, error)
+	IsConvInDatabase(uint64) (bool, error)
+	IsMessageInDatabase(uint64) (bool, error)
+	IsReactionInDatabase(string, uint64, uint64) (bool, error)
+	IsMembershipInDatabase(uint64, uint64) (bool, error)
+	IsUsernameInDatabase(string) (bool, error)
 }
 
 type appdbimpl struct {
@@ -108,7 +118,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			"conversation": `CREATE TABLE IF NOT EXISTS conversation (
     		id INTEGER PRIMARY KEY,
     		type TEXT CHECK ( type IN ('private', 'group') ),
-    		name VARCHAR(25) NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 25 ),
+    		name VARCHAR(25) CHECK ( length(name) >= 3 AND length(name) <= 25 ),
     		photo TEXT DEFAULT NULL)`,
 
 			"membership": `CREATE TABLE IF NOT EXISTS membership (

@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
+	"git.guizzyy.it/WASAText/service/database"
 	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
@@ -32,11 +33,30 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 		return
 	}
 
+	// Get the conversation id from the parameters in the path
+	idConv, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
+	if err != nil {
+		context.Logger.WithError(err).Error("error in getting convID for comment message")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Get the message id from the parameters in the path
 	idMess, err := strconv.ParseUint(params.ByName("messID"), 10, 64)
 	if err != nil {
 		context.Logger.WithError(err).Error("error in getting messID for commentMessage")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the message is in the conversation
+	if isIn, err := rt.db.IsMessageInConv(idMess, idConv); err != nil {
+		context.Logger.WithError(err).Error("error in checking message in convID")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if !isIn {
+		context.Logger.Error("message not found in conversation")
+		http.Error(w, database.ErrMessageNotFound.Error(), http.StatusInternalServerError)
 		return
 	}
 

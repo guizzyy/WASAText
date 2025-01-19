@@ -37,7 +37,6 @@ type Conversation struct {
 	Name        string  `json:"name"`
 	Photo       string  `json:"photo"`
 	LastMessage Message `json:"last_message"`
-	CountUnread uint64  `json:"count_unread"`
 }
 
 type LoginResponse struct {

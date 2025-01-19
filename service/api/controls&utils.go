@@ -89,8 +89,7 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 		}
 	}
 	if file == nil {
-		defer file.Close()
-		return "", err
+		return "", nil
 	}
 	defer file.Close()
 

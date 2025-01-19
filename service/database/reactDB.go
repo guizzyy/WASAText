@@ -11,7 +11,7 @@ func (db *appdbimpl) AddReaction(react utilities.Reaction, messId uint64) error 
 	if isIn, err := db.IsReactionInDatabase(react.Emoji, messId, react.User); err != nil {
 		return fmt.Errorf("error in checking if the reaction exists: %w", err)
 	} else if !isIn {
-		_, err = db.c.Exec(`INSERT INTO reactions(reaction, mess_id, sender) VALUES (?, ?, ?)`, react.Emoji, messId, react.User)
+		_, err = db.c.Exec(`INSERT INTO reactions(reaction, mess_id, sender_id) VALUES (?, ?, ?)`, react.Emoji, messId, react.User)
 		if err != nil {
 			return fmt.Errorf("error adding reaction: %s", err)
 		}
@@ -26,7 +26,7 @@ func (db *appdbimpl) AddReaction(react utilities.Reaction, messId uint64) error 
 }
 
 func (db *appdbimpl) RemoveReaction(messId uint64, senderId uint64) error {
-	_, err := db.c.Exec(`DELETE FROM reactions WHERE mess_id = ? AND sender = ?`, messId, senderId)
+	_, err := db.c.Exec(`DELETE FROM reactions WHERE mess_id = ? AND sender_id = ?`, messId, senderId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrReactionNotFound

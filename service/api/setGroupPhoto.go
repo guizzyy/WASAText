@@ -25,12 +25,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 
 	var conv utilities.Conversation
 
-	//Get the photo from the request body and save the file path; get the group id
-	if conv.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
-		context.Logger.WithError(err).Error("error during get photo path setGroupPhoto")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// Get the group id interested
 	if conv.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
 		context.Logger.WithError(err).Error("error in getting convID for setGroupPhoto")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -50,6 +45,13 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+	}
+
+	//Get the photo from the request body and save the file path; get the group id
+	if conv.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
+		context.Logger.WithError(err).Error("error during get photo path setGroupPhoto")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// Set the new group photo in the database

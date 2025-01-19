@@ -2,6 +2,7 @@ package api
 
 import (
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
+	"git.guizzyy.it/WASAText/service/database"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
@@ -26,6 +27,25 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, para
 	if err != nil {
 		context.Logger.WithError(err).Error("error in getting messID for uncommentMessage")
 		http.Error(w, "error getting the message id", http.StatusInternalServerError)
+		return
+	}
+
+	// Get the id of the conversation in which the message to delete is
+	convID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
+	if err != nil {
+		context.Logger.WithError(err).Error("error in getting convID for uncommentMessage")
+		http.Error(w, "error getting the message id", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the message is in the conversation
+	if isIn, err := rt.db.IsMessageInConv(messID, convID); err != nil {
+		context.Logger.WithError(err).Error("error checking message in conversation")
+		http.Error(w, "error checking message in conversation", http.StatusInternalServerError)
+		return
+	} else if !isIn {
+		context.Logger.Error("message not in conversation")
+		http.Error(w, database.ErrMessageNotFound.Error(), http.StatusBadRequest)
 		return
 	}
 

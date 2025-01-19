@@ -108,12 +108,14 @@ func (db *appdbimpl) GetUserByUsername(u *utilities.User) error {
 
 func (db *appdbimpl) GetUserByID(uID uint64) (utilities.User, error) {
 	var user utilities.User
-	err := db.c.QueryRow(`SELECT * FROM user WHERE id = ?`, uID).Scan(&user.ID, &user.Username, &user.Photo)
+	var photo sql.NullString
+	err := db.c.QueryRow(`SELECT * FROM user WHERE id = ?`, uID).Scan(&user.ID, &user.Username, &photo)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return user, ErrUserNotFound
 		}
 		return user, fmt.Errorf("failed to retrieve user from db: %w", err)
 	}
+	user.Photo = photo.String
 	return user, nil
 }
