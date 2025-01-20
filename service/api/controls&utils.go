@@ -36,12 +36,12 @@ func (rt *_router) checkToken(r *http.Request) (bool, uint64, error) {
 	return true, token, nil
 }
 
-// Check that the strings provided for the name respect the pattern defined
+// Check that the strings provided for the username respect the pattern defined
 func (rt *_router) checkStringFormat(name string) (bool, error) {
 	pattern := `^.*?$`
 
 	if len(name) < 3 || len(name) > 16 {
-		return false, utilities.ErrNameString
+		return false, utilities.ErrUsernameString
 	}
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -50,7 +50,24 @@ func (rt *_router) checkStringFormat(name string) (bool, error) {
 	if re.MatchString(name) {
 		return true, nil
 	} else {
-		return false, utilities.ErrNameString
+		return false, utilities.ErrUsernameString
+	}
+}
+
+func (rt *_router) checkGroupStringFormat(grName string) (bool, error) {
+	pattern := `^.*?$`
+
+	if len(grName) < 3 || len(grName) > 25 {
+		return false, utilities.ErrUsernameString
+	}
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return false, errors.New("error compiling regex: " + err.Error())
+	}
+	if re.MatchString(grName) {
+		return true, nil
+	} else {
+		return false, utilities.ErrUsernameString
 	}
 }
 
@@ -72,7 +89,7 @@ func (rt *_router) checkFileFormat(file multipart.File) (bool, error) {
 func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context reqcontext.RequestContext) (string, error) {
 	// Set the dimension of the request body
 	if err := r.ParseMultipartForm(1 << 20); err != nil {
-		context.Logger.WithError(err).Error("error during ParseMultipartForm sendMessage")
+		context.Logger.WithError(err).Error("error during ParseMultipartForm")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return "", err
 	}

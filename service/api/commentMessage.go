@@ -49,6 +49,16 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 		return
 	}
 
+	// Check if the user is in the conversation in order to comment a message
+	if isIn, err := rt.db.IsUserInConv(idConv, id); err != nil {
+		context.Logger.WithError(err).Error("error in checking if user is in convID")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if !isIn {
+		context.Logger.Error("user not in convID")
+		http.Error(w, "user not in convID", http.StatusUnauthorized)
+	}
+
 	// Check if the message is in the conversation
 	if isIn, err := rt.db.IsMessageInConv(idMess, idConv); err != nil {
 		context.Logger.WithError(err).Error("error in checking message in convID")

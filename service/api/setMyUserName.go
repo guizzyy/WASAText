@@ -7,11 +7,12 @@ import (
 	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
+	"strconv"
 )
 
 func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Check authorization for the operation
-	isAuth, id, err := rt.checkToken(r)
+	isAuth, token, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during checkToken")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -23,9 +24,22 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
+	// Get the user id from the path and check if it matches the auth id
+	loggedID, err := strconv.ParseUint(params.ByName("uID"), 10, 64)
+	if err != nil {
+		context.Logger.WithError(err).Error("error in getting loggedID from the path")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if loggedID != token {
+		context.Logger.WithError(err).Error("Security error")
+		http.Error(w, "setMyUserName operation not allowed", http.StatusUnauthorized)
+		return
+	}
+
 	// Get the new username wanted form the request body
 	var user utilities.User
-	user.ID = id
+	user.ID = loggedID
 	if err = json.NewDecoder(r.Body).Decode(&user); err != nil {
 		context.Logger.WithError(err).Error("json setUsername decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -38,8 +52,8 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.Error(utilities.ErrNameString)
-		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
+		context.Logger.Error(utilities.ErrUsernameString)
+		http.Error(w, utilities.ErrUsernameString.Error(), http.StatusBadRequest)
 		return
 	}
 

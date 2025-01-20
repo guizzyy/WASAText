@@ -8,7 +8,7 @@ import (
 )
 
 func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, error) {
-	// Get info for the conversation in the homepage (plus unread messages)
+	// Get info for the conversation in the homepage
 	query := `WITH lastMess AS (
 				SELECT 
 				    conv_id,
@@ -71,6 +71,7 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 		return nil, fmt.Errorf("error in resulting rows of GetConversations: %w", err)
 	}
 
+	// Update the status of the messages in the database
 	if err = db.UpdateReceivedStatus(uID); err != nil {
 		return nil, fmt.Errorf("error in updating received status: %w", err)
 	}
@@ -83,6 +84,13 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Mes
 		return nil, fmt.Errorf("error checking if user is in conversation: %w", err)
 	} else if !isIn {
 		return nil, ErrUserNotFound
+	}
+
+	// Check if the conversation is in the database
+	if exists, err := db.IsConvInDatabase(convID); err != nil {
+		return nil, fmt.Errorf("error checking if conversation is in database: %w", err)
+	} else if !exists {
+		return nil, ErrConversationNotFound
 	}
 
 	// Get all the messages for the given conversation
@@ -324,6 +332,13 @@ func (db *appdbimpl) GetReceivers(convID uint64, senderID uint64) ([]uint64, err
 }
 
 func (db *appdbimpl) GetMembers(convID uint64, uID uint64) ([]utilities.User, error) {
+	// Check if the conversation is in the database
+	if exists, err := db.IsConvInDatabase(convID); err != nil {
+		return nil, fmt.Errorf("error in checking if conversation is a group: %w", err)
+	} else if !exists {
+		return nil, ErrConversationNotFound
+	}
+
 	// Check if the user is in the conversation in order to use the query
 	if isIn, err := db.IsUserInConv(convID, uID); err != nil {
 		return nil, fmt.Errorf("error in checking if user is in conversation: %w", err)
@@ -451,6 +466,7 @@ func (db *appdbimpl) PrivConvExists(u utilities.User, receiver utilities.User) (
 }
 
 func (db *appdbimpl) GroupStillExists(idConv uint64) error {
+	// Check if there is at least 1 member in the group conversation (otherwise, delete the gorup)
 	var exists bool
 	err := db.c.QueryRow(`SELECT EXISTS(SELECT 1 FROM membership WHERE conv_id = ?)`, idConv).Scan(&exists)
 	if err != nil {

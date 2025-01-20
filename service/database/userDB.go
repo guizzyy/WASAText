@@ -22,16 +22,14 @@ func (db *appdbimpl) LogUser(u *utilities.User) (bool, error) {
 		}
 		return false, fmt.Errorf("failed to query user table for login: %w", err)
 	}
-	if photo.Valid {
-		u.Photo = photo.String
-	}
+	u.Photo = photo.String
 	return false, nil
 }
 
 func (db *appdbimpl) SetUsername(u utilities.User) error {
 	// Check if the username selected is available
 	if isIn, err := db.IsUsernameInDatabase(u.Username); err != nil {
-		return err
+		return fmt.Errorf("failed to check if username is in database: %w", err)
 	} else if isIn {
 		return errors.New("username is already taken")
 	}
@@ -94,6 +92,14 @@ func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, err
 }
 
 func (db *appdbimpl) GetUserByUsername(u *utilities.User) error {
+	// Check if the username exists in the database
+	if exists, err := db.IsUsernameInDatabase(u.Username); err != nil {
+		return fmt.Errorf("failed to check if username is in database: %w", err)
+	} else if !exists {
+		return ErrUserNotFound
+	}
+
+	// Get user information with a given username
 	var photo sql.NullString
 	err := db.c.QueryRow(`SELECT * FROM user WHERE name = ?`, u.Username).Scan(&u.ID, &u.Username, &photo)
 	if err != nil {
@@ -107,6 +113,7 @@ func (db *appdbimpl) GetUserByUsername(u *utilities.User) error {
 }
 
 func (db *appdbimpl) GetUserByID(uID uint64) (utilities.User, error) {
+	// Get user information with a given user id
 	var user utilities.User
 	var photo sql.NullString
 	err := db.c.QueryRow(`SELECT * FROM user WHERE id = ?`, uID).Scan(&user.ID, &user.Username, &photo)

@@ -33,13 +33,13 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	// Check if the group name format is correct
-	if check, err := rt.checkStringFormat(group.Name); err != nil {
+	if check, err := rt.checkGroupStringFormat(group.Name); err != nil {
 		context.Logger.WithError(err).Error("error during string format check")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.Error(utilities.ErrNameString)
-		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
+		context.Logger.Error(utilities.ErrGroupNameString)
+		http.Error(w, utilities.ErrGroupNameString.Error(), http.StatusBadRequest)
 		return
 	}
 

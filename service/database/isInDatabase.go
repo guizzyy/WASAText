@@ -42,9 +42,9 @@ func (db *appdbimpl) IsMessageInDatabase(mID uint64) (bool, error) {
 	return count > 0, nil
 }
 
-func (db *appdbimpl) IsReactionInDatabase(react string, mID uint64, uID uint64) (bool, error) {
+func (db *appdbimpl) IsReactionInDatabase(mID uint64, uID uint64) (bool, error) {
 	var count int
-	err := db.c.QueryRow(`SELECT 1 FROM reactions WHERE (reaction, mess_id, sender_id) = (?, ?, ?) LIMIT 1`, react, mID, uID).Scan(&count)
+	err := db.c.QueryRow(`SELECT 1 FROM reactions WHERE (mess_id, sender_id) = (?, ?, ?) LIMIT 1`, mID, uID).Scan(&count)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, ErrReactionNotFound

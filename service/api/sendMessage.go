@@ -35,7 +35,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	// Check the correct format for the string
-	if mess.Text = r.FormValue("text"); len(mess.Text) == 0 || len(mess.Text) > 250 {
+	if mess.Text = r.FormValue("text"); len(mess.Text) == 0 || len(mess.Text) >= 250 {
 		context.Logger.Error(utilities.ErrTextString)
 		http.Error(w, utilities.ErrTextString.Error(), http.StatusBadRequest)
 		return

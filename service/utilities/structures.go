@@ -44,5 +44,6 @@ type LoginResponse struct {
 	UserLogged User   `json:"user"`
 }
 
-var ErrNameString = errors.New("invalid string format for the name (length should be between 3 and 25)")
+var ErrUsernameString = errors.New("invalid string format for the username (length should be between 3 and 16)")
+var ErrGroupNameString = errors.New("invalid string format for the group name (length should be between 3 and 25)")
 var ErrTextString = errors.New("invalid string format for the message (length should be between 1 and 250)")

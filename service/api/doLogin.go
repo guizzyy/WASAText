@@ -24,8 +24,8 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	} else if !check {
-		context.Logger.Error(utilities.ErrNameString)
-		http.Error(w, utilities.ErrNameString.Error(), http.StatusBadRequest)
+		context.Logger.Error(utilities.ErrUsernameString)
+		http.Error(w, utilities.ErrUsernameString.Error(), http.StatusBadRequest)
 		return
 	}
 

@@ -38,6 +38,17 @@ func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, para
 		return
 	}
 
+	// Check if the user is in the conversation in order to delete the comment
+	if isIn, err := rt.db.IsUserInConv(convID, id); err != nil {
+		context.Logger.WithError(err).Error("error checking if user is in convID")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if !isIn {
+		context.Logger.Error("user is not in convID")
+		http.Error(w, "user is not in convID", http.StatusUnauthorized)
+		return
+	}
+
 	// Check if the message is in the conversation
 	if isIn, err := rt.db.IsMessageInConv(messID, convID); err != nil {
 		context.Logger.WithError(err).Error("error checking message in conversation")

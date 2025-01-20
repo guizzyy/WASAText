@@ -292,7 +292,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Group'
+              $ref: '#/components/schemas/Photo'
         required: true
       responses:
         '200':
@@ -559,15 +559,6 @@ components:
       required: true
       description: ID of the message
 
-    ReactionID:
-      schema:
-        type: integer
-        example: 4
-      name: reactID
-      in: path
-      required: true
-      description: ID of the reaction
-
   schemas:
     User:
       description: User schema
@@ -659,13 +650,11 @@ components:
       description: conversation schema
       type: object
       properties:
-        user:
-          $ref: '#/components/schemas/User'
         messages:
           type: array
           items:
             $ref: '#/components/schemas/Message'
-          minItems: 1
+          minItems: 0
           maxItems: 999
           description: messages sent
 
@@ -694,7 +683,7 @@ components:
           readOnly: true
         emoji:
           type: string
-          example: '😀'
+          example: ""
           minLength: 1
           maxLength: 4
           pattern: '^[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u1F700-\u1F77F\u1F780-\u1F7FF\u1F800-\u1F8FF\u1F900-\u1F9FF\u1FA00-\u1FA6F\u1FA70-\u1FAFF\u2600-\u26FF\u2700-\u27BF\u2300-\u23FF\u2B50\u23F0\u231A\u25AA\u25FE\u2B06\u2194\u2B05\u2195\u21A9\u21AA\u2753\u2754\u2755\u274C\u274E\u2B06\u2199]$'
@@ -743,6 +732,9 @@ components:
         file:
           type: string
           format: binary
+          minLength: 1
+          maxLength: 999
+          description: file of the photo
 
     Text:
       description: message text
@@ -754,6 +746,7 @@ components:
           pattern: '^.*?$'
           minLength: 1
           maxLength: 255
+          description: the text of the message
 
     Notification:
       description: notification sent to the user

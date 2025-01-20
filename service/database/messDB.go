@@ -46,24 +46,25 @@ func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
 	if mess.IsForward {
 		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id, is_forwarded) VALUES (?, ?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender, mess.IsForward).Scan(&mess.ID, &mess.Timestamp)
 		if err != nil {
-			return fmt.Errorf("error adding forwarded message to database: %v", err)
+			return fmt.Errorf("error adding forwarded message to database: %w", err)
 		}
 	} else {
 		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id) VALUES (?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender).Scan(&mess.ID, &mess.Timestamp)
 		if err != nil {
-			return fmt.Errorf("error adding message to database: %v", err)
+			return fmt.Errorf("error adding message to database: %w", err)
 		}
 	}
+
 	// Get the receivers ids for insert into status message
 	receivers, err := db.GetReceivers(mess.Conv, mess.Sender)
 	if err != nil {
-		return fmt.Errorf("error getting receivers: %v", err)
+		return fmt.Errorf("error getting receivers: %w", err)
 	}
 
 	// Set the message status in the database (create a new row)
 	mess.Status, err = db.InsertStatus(receivers, mess.ID, mess.Conv)
 	if err != nil {
-		return fmt.Errorf("error updating message status for receivers: %v", err)
+		return fmt.Errorf("error updating message status for receivers: %w", err)
 	}
 	return nil
 }
@@ -78,7 +79,7 @@ func (db *appdbimpl) RemoveMessage(messId uint64, uID uint64) error {
 
 	// Check if the message belongs to the owner
 	if check, err := db.IsOwnerMessage(messId, uID); err != nil {
-		return fmt.Errorf("error checking message owner: %v", err)
+		return fmt.Errorf("error checking message owner: %w", err)
 	} else if !check {
 		return fmt.Errorf("message not owned by this user")
 	}
@@ -86,7 +87,7 @@ func (db *appdbimpl) RemoveMessage(messId uint64, uID uint64) error {
 	// Delete the message owned by the user
 	_, err := db.c.Exec(`DELETE FROM message WHERE id = ? AND sender_id = ?`, messId, uID)
 	if err != nil {
-		return fmt.Errorf("error removing the message from the database: %v", err)
+		return fmt.Errorf("error removing the message from the database: %w", err)
 	}
 	return nil
 }
@@ -97,29 +98,32 @@ func (db *appdbimpl) InsertStatus(receivers []uint64, idMess uint64, idConv uint
 	for _, receiver := range receivers {
 		err := db.c.QueryRow(`INSERT INTO status(receiver_id, mess_id, conv_id) VALUES (?, ?, ?) RETURNING info`, receiver, idMess, idConv).Scan(&info)
 		if err != nil {
-			return "", fmt.Errorf("error inserting status for message to receiver: %v", err)
+			return "", fmt.Errorf("error inserting status for message to receiver: %w", err)
 		}
 	}
 	return info, nil
 }
 
 func (db *appdbimpl) UpdateReadStatus(cID uint64, uID uint64) error {
+	// Update the status of the message to READ
 	_, err := db.c.Exec(`UPDATE status SET info = 'Read' WHERE conv_id = ? AND receiver_id = ?`, cID, uID)
 	if err != nil {
-		return fmt.Errorf("error updating status for read message to receiver: %v", err)
+		return fmt.Errorf("error updating status for read message to receiver: %w", err)
 	}
 	return nil
 }
 
 func (db *appdbimpl) UpdateReceivedStatus(uID uint64) error {
+	// Update the status of the message to RECEIVED
 	_, err := db.c.Exec(`UPDATE status SET info = 'Received' WHERE receiver_id = ? AND info = 'Unreceived'`, uID)
 	if err != nil {
-		return fmt.Errorf("error updating status for received message to receiver: %v", err)
+		return fmt.Errorf("error updating status for received message to receiver: %w", err)
 	}
 	return nil
 }
 
 func (db *appdbimpl) IsOwnerMessage(mID uint64, owner_id uint64) (bool, error) {
+	// Check if the owner id is the same of the message
 	var owner uint64
 	err := db.c.QueryRow(`SELECT sender_id FROM message WHERE id = ?`, mID).Scan(&owner)
 	if err != nil {
@@ -132,7 +136,7 @@ func (db *appdbimpl) IsOwnerMessage(mID uint64, owner_id uint64) (bool, error) {
 }
 
 func (db *appdbimpl) IsMessageInConv(mID uint64, cID uint64) (bool, error) {
-	// Check if ag
+	// Check if a message is in the conversation
 	var exists bool
 	err := db.c.QueryRow(`SELECT EXISTS(SELECT 1 FROM message WHERE id = ? AND conv_id = ?)`, mID, cID).Scan(&exists)
 	if err != nil {

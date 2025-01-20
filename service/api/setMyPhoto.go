@@ -6,11 +6,12 @@ import (
 	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
+	"strconv"
 )
 
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params httprouter.Params, context reqcontext.RequestContext) {
 	// Get the authorization for the operation
-	isAuth, id, err := rt.checkToken(r)
+	isAuth, token, err := rt.checkToken(r)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during checking token")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -18,6 +19,19 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 	}
 	if !isAuth {
 		context.Logger.Error("setMyPhoto not unauthorized")
+		http.Error(w, "setMyPhoto operation not allowed", http.StatusUnauthorized)
+		return
+	}
+
+	// Get the user token from the path and check if it matches the auth token
+	loggedID, err := strconv.ParseUint(params.ByName("uID"), 10, 64)
+	if err != nil {
+		context.Logger.WithError(err).Error("error in getting loggedID from the path")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if loggedID != token {
+		context.Logger.WithError(err).Error("Security error")
 		http.Error(w, "setMyPhoto operation not allowed", http.StatusUnauthorized)
 		return
 	}
@@ -31,7 +45,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 	}
 
 	// Delete the previous user photo if there was an existing one
-	user, err := rt.db.GetUserByID(id)
+	user, err := rt.db.GetUserByID(loggedID)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during get current user photo db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -46,7 +60,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 	}
 
 	// Insert/Update the photo path in the database
-	user.ID = id
+	user.ID = loggedID
 	user.Photo = filePath
 	if err = rt.db.SetPhoto(user); err != nil {
 		context.Logger.WithError(err).Error("Error during setPhoto db")

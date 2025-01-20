@@ -19,22 +19,22 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/memberships/:convID", rt.wrap(rt.getMembers))
 
 	// Message operations
-	rt.router.POST("/conversation/:convID/messages/:messID", rt.wrap(rt.forwardMessage))
-	rt.router.DELETE("/conversation/:convID/messages/:messID", rt.wrap(rt.deleteMessage))
-	rt.router.POST("/conversation/:convID/messages", rt.wrap(rt.sendMessage))
+	rt.router.POST("/conversations/:convID/messages/:messID", rt.wrap(rt.forwardMessage))
+	rt.router.DELETE("/conversations/:convID/messages/:messID", rt.wrap(rt.deleteMessage))
+	rt.router.POST("/conversations/:convID/messages", rt.wrap(rt.sendMessage))
 
 	// Comment (reaction) operations
-	rt.router.GET("/conversation/:convID/messages/:messID/reactions", rt.wrap(rt.getComments))
-	rt.router.PUT("/conversation/:convID/messages/:messID/reactions", rt.wrap(rt.commentMessage))
-	rt.router.DELETE("/conversation/:convID/messages/:messID/reactions", rt.wrap(rt.uncommentMessage))
+	rt.router.GET("/conversations/:convID/messages/:messID/reactions", rt.wrap(rt.getComments))
+	rt.router.PUT("/conversations/:convID/messages/:messID/reactions", rt.wrap(rt.commentMessage))
+	rt.router.DELETE("/conversations/:convID/messages/:messID/reactions", rt.wrap(rt.uncommentMessage))
 
 	// Conversation operations
-	rt.router.GET("/conversation", rt.wrap(rt.getMyConversations))
-	rt.router.POST("/conversation", rt.wrap(rt.startConversation))
+	rt.router.GET("/conversations", rt.wrap(rt.getMyConversations))
+	rt.router.POST("/conversations", rt.wrap(rt.startConversation))
 	rt.router.POST("/group", rt.wrap(rt.createGroup))
-	rt.router.PUT("/conversation/:convID/manage/name", rt.wrap(rt.setGroupName))
-	rt.router.PUT("/conversation/:convID/manage/photo", rt.wrap(rt.setGroupPhoto))
-	rt.router.GET("/conversation/:convID/open", rt.wrap(rt.getConversation))
+	rt.router.PUT("/conversations/:convID/manage/name", rt.wrap(rt.setGroupName))
+	rt.router.PUT("/conversations/:convID/manage/photo", rt.wrap(rt.setGroupPhoto))
+	rt.router.GET("/conversations/:convID/open", rt.wrap(rt.getConversation))
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)

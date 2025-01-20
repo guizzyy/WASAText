@@ -82,7 +82,7 @@ type AppDatabase interface {
 	IsUserInDatabase(uint64) (bool, error)
 	IsConvInDatabase(uint64) (bool, error)
 	IsMessageInDatabase(uint64) (bool, error)
-	IsReactionInDatabase(string, uint64, uint64) (bool, error)
+	IsReactionInDatabase(uint64, uint64) (bool, error)
 	IsMembershipInDatabase(uint64, uint64) (bool, error)
 	IsUsernameInDatabase(string) (bool, error)
 }
