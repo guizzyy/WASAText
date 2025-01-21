@@ -54,6 +54,7 @@ func (rt *_router) checkStringFormat(name string) (bool, error) {
 	}
 }
 
+// Check that the strings provided for the group name respect the pattern defined
 func (rt *_router) checkGroupStringFormat(grName string) (bool, error) {
 	pattern := `^.*?$`
 

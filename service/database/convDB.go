@@ -8,7 +8,7 @@ import (
 )
 
 func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, error) {
-	// Get info for the conversation in the homepage
+	//	Get info for the conversation in the homepage
 	query := `WITH lastMess AS (
 				SELECT 
 				    conv_id,
@@ -40,9 +40,8 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 	if err != nil {
 		return nil, fmt.Errorf("error in getting conversations for the homepage: %w", err)
 	}
-	defer rows.Close()
 
-	// Scan the rows to get conversation info and updating the status
+	//	Scan the rows to get conversation info and updating the status
 	var convs []utilities.Conversation
 	for rows.Next() {
 		var mess utilities.Message
@@ -66,12 +65,12 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 		convs = append(convs, conv)
 	}
 
-	// Check errors during the scanning of the rows
+	//	Check errors during the scanning of the rows
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error in resulting rows of GetConversations: %w", err)
 	}
 
-	// Update the status of the messages in the database
+	//	Update the status of the messages in the database
 	if err = db.UpdateReceivedStatus(uID); err != nil {
 		return nil, fmt.Errorf("error in updating received status: %w", err)
 	}
@@ -79,21 +78,21 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 }
 
 func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Message, error) {
-	// Check if the user is in the conversation
+	//	Check if the user is in the conversation
 	if isIn, err := db.IsUserInConv(convID, uID); err != nil {
 		return nil, fmt.Errorf("error checking if user is in conversation: %w", err)
 	} else if !isIn {
 		return nil, ErrUserNotFound
 	}
 
-	// Check if the conversation is in the database
+	//	Check if the conversation is in the database
 	if exists, err := db.IsConvInDatabase(convID); err != nil {
 		return nil, fmt.Errorf("error checking if conversation is in database: %w", err)
 	} else if !exists {
 		return nil, ErrConversationNotFound
 	}
 
-	// Get all the messages for the given conversation
+	//	Get all the messages for the given conversation
 	query := `SELECT
     				m.id,
     				m.text,
@@ -111,9 +110,8 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Mes
 	if err != nil {
 		return nil, fmt.Errorf("error in getting messages in a conversation: %w", err)
 	}
-	defer rows.Close()
 
-	// Scan the rows to get messages info and updating the status
+	//	Scan the rows to get messages info and updating the status
 	var messages []utilities.Message
 	for rows.Next() {
 		var m utilities.Message
@@ -124,12 +122,12 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Mes
 		messages = append(messages, m)
 	}
 
-	// Check errors during the scanning of the rows
+	//	Check errors during the scanning of the rows
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error in getting messages in a conversation: %w", err)
 	}
 
-	// Update the status of the messages in the database
+	//	Update the status of the messages in the database
 	if err = db.UpdateReadStatus(convID, uID); err != nil {
 		return nil, fmt.Errorf("error in updating read status: %w", err)
 	}
@@ -137,26 +135,26 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Mes
 }
 
 func (db *appdbimpl) CreatePrivConv(u utilities.User, receiver utilities.User) (utilities.Conversation, error) {
-	// Control if the user and receiver are the same
+	//	Control if the user and receiver are the same
 	if u.ID == receiver.ID {
 		return utilities.Conversation{}, errors.New("cannot create a conversation with yourself")
 	}
 
-	// Control if the conversation already exists
+	//	Control if the conversation already exists
 	if exists, conv, err := db.PrivConvExists(u, receiver); err != nil {
 		return conv, err
 	} else if exists {
 		return conv, nil
 	}
 
-	// Insert the new private conversation created in the database
+	//	Insert the new private conversation created in the database
 	var conv utilities.Conversation
 	err := db.c.QueryRow(`INSERT INTO conversation(type) VALUES (?) RETURNING id, type`, "private").Scan(&conv.ID, &conv.Type)
 	if err != nil {
 		return utilities.Conversation{}, fmt.Errorf("error in creating private conversation: %w", err)
 	}
 
-	// Insert the membership of the user in the database
+	//	Insert the membership of the user in the database
 	_, err = db.c.Exec(`INSERT INTO membership(conv_id, user_id) VALUES (?, ?)`, conv.ID, u.ID)
 	if err != nil {
 		return utilities.Conversation{}, fmt.Errorf("error in creating memberships: %w", err)
@@ -174,13 +172,13 @@ func (db *appdbimpl) CreatePrivConv(u utilities.User, receiver utilities.User) (
 }
 
 func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uint64) error {
-	// Insert and retrieve the new conversation info in the database
+	//	Insert and retrieve the new conversation info in the database
 	err := db.c.QueryRow(`INSERT INTO conversation(name, type) VALUES (?, ?) RETURNING id`, grConv.Name, grConv.Type).Scan(&grConv.ID)
 	if err != nil {
 		return fmt.Errorf("error in creating conversation: %w", err)
 	}
 
-	// Insert the new membership of the group creator and the new group created
+	//	Insert the new membership of the group creator and the new group created
 	_, err = db.c.Exec(`INSERT INTO membership(conv_id, user_id) VALUES (?, ?)`, grConv.ID, user_id)
 	if err != nil {
 		return fmt.Errorf("error in adding memberships while creating the group: %w", err)
@@ -189,21 +187,21 @@ func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uin
 }
 
 func (db *appdbimpl) SetGroupName(group utilities.Conversation, uID uint64) error {
-	// Check if the id refers to a group conversation
+	//	Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(group.ID); err != nil {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return fmt.Errorf("conversation is not a group")
 	}
 
-	// Check if the user who is trying to change the name is in the group
+	//	Check if the user who is trying to change the name is in the group
 	if isIn, err := db.IsUserInConv(group.ID, uID); err != nil {
 		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
 	} else if !isIn {
 		return fmt.Errorf("user is not in the conversation")
 	}
 
-	// Update the group name and check possible errors
+	//	Update the group name and check possible errors
 	res, err := db.c.Exec(`UPDATE conversation SET name = ? WHERE id = ?`, group.Name, group.ID)
 	if err != nil {
 		return fmt.Errorf("error in setting group name: %w", err)
@@ -219,21 +217,21 @@ func (db *appdbimpl) SetGroupName(group utilities.Conversation, uID uint64) erro
 }
 
 func (db *appdbimpl) SetGroupPhoto(group utilities.Conversation, uID uint64) error {
-	// Check if the id refers to a group conversation
+	//	Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(group.ID); err != nil {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return fmt.Errorf("conversation is not a group")
 	}
 
-	// Check if the user who is trying to change the photo is in the group
+	//	Check if the user who is trying to change the photo is in the group
 	if isIn, err := db.IsUserInConv(group.ID, uID); err != nil {
 		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
 	} else if !isIn {
 		return fmt.Errorf("user is not in the conversation")
 	}
 
-	// Update the group photo and check possible errors
+	//	Update the group photo and check possible errors
 	res, err := db.c.Exec(`UPDATE conversation SET photo = ? WHERE id = ?`, group.Photo, group.ID)
 	if err != nil {
 		return fmt.Errorf("error in setting group photo: %w", err)
@@ -249,28 +247,28 @@ func (db *appdbimpl) SetGroupPhoto(group utilities.Conversation, uID uint64) err
 }
 
 func (db *appdbimpl) AddToGroup(idConv uint64, uID uint64, uAdded utilities.User) error {
-	// Check if the id refers to a group conversation
+	//	Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(idConv); err != nil {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return fmt.Errorf("conversation is not a group")
 	}
 
-	// Check if the user is in the group in order to add a new member
+	//	Check if the user is in the group in order to add a new member
 	if isIn, err := db.IsUserInConv(idConv, uID); err != nil {
 		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
 	} else if !isIn {
 		return fmt.Errorf("the user is not in the group conversation")
 	}
 
-	// Check if the user added is already in the group
+	//	Check if the user added is already in the group
 	if isIn, err := db.IsUserInConv(idConv, uAdded.ID); err != nil {
 		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
 	} else if isIn {
 		return fmt.Errorf("the user is already in the group conversation")
 	}
 
-	// Insert the new membership of the user to the group conversation
+	//	Insert the new membership of the user to the group conversation
 	_, err := db.c.Exec(`INSERT INTO membership(conv_id, user_id) VALUES (?, ?)`, idConv, uAdded.ID)
 	if err != nil {
 		return fmt.Errorf("error in adding membership to conversation: %w", err)
@@ -279,27 +277,27 @@ func (db *appdbimpl) AddToGroup(idConv uint64, uID uint64, uAdded utilities.User
 }
 
 func (db *appdbimpl) LeaveGroup(idConv uint64, idUser uint64) error {
-	// Check if the id refers to a group conversation
+	//	Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(idConv); err != nil {
 		return fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return fmt.Errorf("conversation is not a group")
 	}
 
-	// Check if the user is in the group
+	//	Check if the user is in the group
 	if isIn, err := db.IsUserInConv(idConv, idUser); err != nil {
 		return fmt.Errorf("error in checking if a user is in the conversation: %w", err)
 	} else if !isIn {
 		return fmt.Errorf("the user is not in the group conversation")
 	}
 
-	// Delete the membership of the user id from the conversation
+	//	Delete the membership of the user id from the conversation
 	_, err := db.c.Exec(`DELETE FROM membership WHERE conv_id = ? AND user_id = ?`, idConv, idUser)
 	if err != nil {
 		return fmt.Errorf("error in leaving conversation: %w", err)
 	}
 
-	// Delete the group if no members remain
+	//	Delete the group if no members remain
 	if err = db.GroupStillExists(idConv); err != nil {
 		return fmt.Errorf("error checking if there are still members in the conversation: %w", err)
 	}
@@ -307,15 +305,14 @@ func (db *appdbimpl) LeaveGroup(idConv uint64, idUser uint64) error {
 }
 
 func (db *appdbimpl) GetReceivers(convID uint64, senderID uint64) ([]uint64, error) {
+	//	Get the set of receivers for a given conversation (if private, it will be an array of 1 element)
 	var receivers []uint64
-	// Get the set of receivers for a given conversation (if private, it will be an array of 1 element)
 	rows, err := db.c.Query(`SELECT user_id FROM membership WHERE conv_id = ? AND user_id != ?`, convID, senderID)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting receivers of the message: %w", err)
 	}
-	defer rows.Close()
 
-	// Scan the rows to get the receivers id
+	//	Scan the rows to get the receivers id
 	for rows.Next() {
 		var receiver uint64
 		if err = rows.Scan(&receiver); err != nil {
@@ -324,7 +321,7 @@ func (db *appdbimpl) GetReceivers(convID uint64, senderID uint64) ([]uint64, err
 		receivers = append(receivers, receiver)
 	}
 
-	// Check error during the scanning of the rows
+	//	Check error during the scanning of the rows
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error in resulting rows of GetReceivers: %w", err)
 	}
@@ -332,22 +329,22 @@ func (db *appdbimpl) GetReceivers(convID uint64, senderID uint64) ([]uint64, err
 }
 
 func (db *appdbimpl) GetMembers(convID uint64, uID uint64) ([]utilities.User, error) {
-	// Check if the conversation is in the database
+	//	Check if the conversation is in the database
 	if exists, err := db.IsConvInDatabase(convID); err != nil {
 		return nil, fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !exists {
 		return nil, ErrConversationNotFound
 	}
 
-	// Check if the user is in the conversation in order to use the query
+	//	Check if the user is in the conversation in order to use the query
 	if isIn, err := db.IsUserInConv(convID, uID); err != nil {
 		return nil, fmt.Errorf("error in checking if user is in conversation: %w", err)
 	} else if !isIn {
 		return nil, fmt.Errorf("user is not in the conversation")
 	}
 
+	//	Select infos of user in the conversation
 	var members []utilities.User
-	// Select infos of user in the conversation
 	query := `SELECT 
     				u.id, u.name, u.photo 
 				FROM 
@@ -358,9 +355,8 @@ func (db *appdbimpl) GetMembers(convID uint64, uID uint64) ([]utilities.User, er
 	if err != nil {
 		return nil, fmt.Errorf("error in getting members of the conversation: %w", err)
 	}
-	defer rows.Close()
 
-	// Scan the rows to get id, name and photo of each user
+	//	Scan the rows to get id, name and photo of each user
 	for rows.Next() {
 		var u utilities.User
 		var photo sql.NullString
@@ -371,7 +367,7 @@ func (db *appdbimpl) GetMembers(convID uint64, uID uint64) ([]utilities.User, er
 		members = append(members, u)
 	}
 
-	// Check error in the resulting rows
+	//	Check error in the resulting rows
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error in resulting rows of GetMembers: %w", err)
 	}
@@ -379,14 +375,14 @@ func (db *appdbimpl) GetMembers(convID uint64, uID uint64) ([]utilities.User, er
 }
 
 func (db *appdbimpl) GetConvPhoto(convID uint64) (string, error) {
-	// Check if the id refers to a group conversation
+	//	Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(convID); err != nil {
 		return "", fmt.Errorf("error in checking if conversation is a group: %w", err)
 	} else if !isGroup {
 		return "", fmt.Errorf("conversation is not a group")
 	}
 
-	// Query the database to get the current group photo stored
+	//	Query the database to get the current group photo stored
 	var groupPhoto sql.NullString
 	err := db.c.QueryRow(`SELECT photo FROM conversation WHERE id = ?`, convID).Scan(&groupPhoto)
 	if err != nil {
@@ -396,7 +392,7 @@ func (db *appdbimpl) GetConvPhoto(convID uint64) (string, error) {
 }
 
 func (db *appdbimpl) IsGroupConv(convID uint64) (bool, error) {
-	// Check if a given conv id refers to a group conversation
+	//	Check if a given conv id refers to a group conversation
 	var class string
 	err := db.c.QueryRow(`SELECT type FROM conversation WHERE id = ?`, convID).Scan(&class)
 	if err != nil {
@@ -409,7 +405,7 @@ func (db *appdbimpl) IsGroupConv(convID uint64) (bool, error) {
 }
 
 func (db *appdbimpl) IsPrivConv(convID uint64) (bool, error) {
-	// Check if a given conv id refers to a private conversation
+	//	Check if a given conv id refers to a private conversation
 	var class string
 	err := db.c.QueryRow(`SELECT type FROM conversation WHERE id = ?`, convID).Scan(&class)
 	if err != nil {
@@ -422,7 +418,7 @@ func (db *appdbimpl) IsPrivConv(convID uint64) (bool, error) {
 }
 
 func (db *appdbimpl) IsUserInConv(convID uint64, uID uint64) (bool, error) {
-	// Check if a given user is in the conversation
+	//	Check if a given user is in the conversation
 	var exists bool
 	err := db.c.QueryRow(`SELECT EXISTS(SELECT 1 FROM membership WHERE conv_id = ? AND user_id = ?)`, convID, uID).Scan(&exists)
 	if err != nil {
@@ -434,7 +430,7 @@ func (db *appdbimpl) IsUserInConv(convID uint64, uID uint64) (bool, error) {
 }
 
 func (db *appdbimpl) PrivConvExists(u utilities.User, receiver utilities.User) (bool, utilities.Conversation, error) {
-	// Select conv information to see if it exists
+	//	Select conv information to see if it exists
 	var conv utilities.Conversation
 	query := `SELECT
 					c.id, c.type
@@ -454,7 +450,7 @@ func (db *appdbimpl) PrivConvExists(u utilities.User, receiver utilities.User) (
 				    	    COUNT(DISTINCT m.user_id) = 2)`
 	err := db.c.QueryRow(query, u.ID, receiver.ID).Scan(&conv.ID, &conv.Type)
 	if err != nil {
-		// If the error is NoRows, it means the conversation doesn't exist
+		//	If the error is NoRows, it means the conversation doesn't exist
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, conv, nil
 		}
@@ -466,7 +462,7 @@ func (db *appdbimpl) PrivConvExists(u utilities.User, receiver utilities.User) (
 }
 
 func (db *appdbimpl) GroupStillExists(idConv uint64) error {
-	// Check if there is at least 1 member in the group conversation (otherwise, delete the gorup)
+	//	Check if there is at least 1 member in the group conversation (otherwise, delete the group)
 	var exists bool
 	err := db.c.QueryRow(`SELECT EXISTS(SELECT 1 FROM membership WHERE conv_id = ?)`, idConv).Scan(&exists)
 	if err != nil {
@@ -481,7 +477,7 @@ func (db *appdbimpl) GroupStillExists(idConv uint64) error {
 }
 
 func (db *appdbimpl) GetPrivConvInfo(convID uint64, senderID uint64) (string, string, error) {
-	// Get username and photo of the receiver to display in the homepage
+	//	Get username and photo of the receiver to display in the homepage
 	receiver, err := db.GetReceivers(convID, senderID)
 	if err != nil {
 		return "", "", fmt.Errorf("error in getting receivers of the conversation: %w", err)
@@ -494,7 +490,7 @@ func (db *appdbimpl) GetPrivConvInfo(convID uint64, senderID uint64) (string, st
 }
 
 func (db *appdbimpl) GetGroupConvInfo(convID uint64) (string, string, error) {
-	// Get name and photo of the group to display in the homepage
+	//	Get name and photo of the group to display in the homepage
 	var group utilities.Conversation
 	err := db.c.QueryRow(`SELECT name, photo FROM conversation WHERE id = ?`, convID).Scan(&group.Name, &group.Photo)
 	if err != nil {

@@ -61,7 +61,7 @@ func (rt *_router) getComments(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	//Query the database to retrieve a list of reactions in the message
+	// Query the database to retrieve a list of reactions in the message
 	reactions, err := rt.db.GetReactions(messID)
 	if err != nil {
 		context.Logger.WithError(err).Error("error in getting reactions db")

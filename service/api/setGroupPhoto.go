@@ -47,7 +47,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		}
 	}
 
-	//Get the photo from the request body and save the file path; get the group id
+	// Get the photo from the request body and save the file path; get the group id
 	if conv.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
 		context.Logger.WithError(err).Error("error during get photo path setGroupPhoto")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
