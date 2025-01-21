@@ -78,18 +78,18 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 }
 
 func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Message, error) {
-	//	Check if the user is in the conversation
-	if isIn, err := db.IsUserInConv(convID, uID); err != nil {
-		return nil, fmt.Errorf("error checking if user is in conversation: %w", err)
-	} else if !isIn {
-		return nil, ErrUserNotFound
-	}
-
 	//	Check if the conversation is in the database
 	if exists, err := db.IsConvInDatabase(convID); err != nil {
 		return nil, fmt.Errorf("error checking if conversation is in database: %w", err)
 	} else if !exists {
 		return nil, ErrConversationNotFound
+	}
+
+	//	Check if the user is in the conversation
+	if isIn, err := db.IsUserInConv(convID, uID); err != nil {
+		return nil, fmt.Errorf("error checking if user is in conversation: %w", err)
+	} else if !isIn {
+		return nil, ErrUserNotFound
 	}
 
 	//	Get all the messages for the given conversation

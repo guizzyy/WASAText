@@ -1,10 +1,12 @@
 ***TODO***: change disposition of go files for code legibility
-***TODO***: change paths in the api
-***TODO***: test all the function with curls
-***TODO***: manage the null photo error in string
-***TODO***: manage startConversation (double conversation created)
+***TODO***: test all the function with curls (reactions left)
+***TODO***: check why emojis doesn't match the regex pattern
 
 // Things to change once you get your degree
 ***TODO***: change the photo path names with user ids (maybe directory)
 ***TODO***: delete not only your messages (it still display in another account)
-***TODO***: check correspond between token and id in url
+***TODO***: check correspond between token and token in url
+***TODO***: implement founder of the group (has more permissions)
+***TODO***: manage leave group (expel other members)
+***TODO***: create new errors (user not in conv, message not in conv, etc..)
+***TODO***: delete redundant check for errors

@@ -59,7 +59,7 @@ func (rt *_router) checkGroupStringFormat(grName string) (bool, error) {
 	pattern := `^.*?$`
 
 	if len(grName) < 3 || len(grName) > 25 {
-		return false, utilities.ErrUsernameString
+		return false, utilities.ErrGroupNameString
 	}
 	re, err := regexp.Compile(pattern)
 	if err != nil {
@@ -68,7 +68,22 @@ func (rt *_router) checkGroupStringFormat(grName string) (bool, error) {
 	if re.MatchString(grName) {
 		return true, nil
 	} else {
-		return false, utilities.ErrUsernameString
+		return false, utilities.ErrGroupNameString
+	}
+}
+
+// Check that the reaction provided respect the pattern (is an emoji)
+func (rt *_router) checkEmojiFormat(emoji string) (bool, error) {
+	pattern := `^[\\u1F600-\\u1F64F\\u1F300-\\u1F5FF\\u1F680-\\u1F6FF\\u1F700-\\u1F77F\\u1F780-\\u1F7FF\\u1F800-\\u1F8FF\\u1F900-\\u1F9FF\\u1FA00-\\u1FA6F\\u1FA70-\\u1FAFF\\u2600-\\u26FF\\u2700-\\u27BF\\u2300-\\u23FF\\u2B50\\u23F0\\u231A\\u25AA\\u25FE\\u2B06\\u2194\\u2B05\\u2195\\u21A9\\u21AA\\u2753\\u2754\\u2755\\u274C\\u274E\\u2199]$`
+
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return false, errors.New("error compiling regex: " + err.Error())
+	}
+	if re.MatchString(emoji) {
+		return true, nil
+	} else {
+		return false, errors.New("error is not emoji")
 	}
 }
 

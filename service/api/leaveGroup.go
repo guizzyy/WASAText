@@ -22,7 +22,7 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, params htt
 	}
 
 	// Check if the id from the path and the token correspond
-	leaverID, err := strconv.ParseUint(params.ByName("convID"), 10, 64)
+	leaverID, err := strconv.ParseUint(params.ByName("uID"), 10, 64)
 	if err != nil {
 		context.Logger.WithError(err).Error("error in getting leaverID for leaveGroup")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

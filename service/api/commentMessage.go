@@ -57,6 +57,7 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 	} else if !isIn {
 		context.Logger.Error("user not in convID")
 		http.Error(w, "user not in convID", http.StatusUnauthorized)
+		return
 	}
 
 	// Check if the message is in the conversation
@@ -67,6 +68,17 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 	} else if !isIn {
 		context.Logger.Error("message not found in conversation")
 		http.Error(w, database.ErrMessageNotFound.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Check if the comment is an emoji
+	if isEmoji, err := rt.checkEmojiFormat(react.Emoji); err != nil {
+		context.Logger.WithError(err).Error("error in checking emoji format")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	} else if !isEmoji {
+		context.Logger.Error("emoji format not supported")
+		http.Error(w, "emoji format not supported", http.StatusBadRequest)
 		return
 	}
 
