@@ -48,10 +48,10 @@ func (db *appdbimpl) IsMessageInDatabase(mID uint64) (bool, error) {
 func (db *appdbimpl) IsReactionInDatabase(mID uint64, uID uint64) (bool, error) {
 	//	Check if a reaction from a user ID in a message ID is in the database
 	var count int
-	err := db.c.QueryRow(`SELECT 1 FROM reactions WHERE (mess_id, sender_id) = (?, ?, ?) LIMIT 1`, mID, uID).Scan(&count)
+	err := db.c.QueryRow(`SELECT 1 FROM reactions WHERE (mess_id, sender_id) = (?, ?) LIMIT 1`, mID, uID).Scan(&count)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return false, ErrReactionNotFound
+			return false, nil
 		}
 		return false, fmt.Errorf("error during IsReactionInDatabase: %w", err)
 	}

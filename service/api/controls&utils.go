@@ -74,12 +74,9 @@ func (rt *_router) checkGroupStringFormat(grName string) (bool, error) {
 
 // Check that the reaction provided respect the pattern (is an emoji)
 func (rt *_router) checkEmojiFormat(emoji string) (bool, error) {
-	pattern := `^[\\u1F600-\\u1F64F\\u1F300-\\u1F5FF\\u1F680-\\u1F6FF\\u1F700-\\u1F77F\\u1F780-\\u1F7FF\\u1F800-\\u1F8FF\\u1F900-\\u1F9FF\\u1FA00-\\u1FA6F\\u1FA70-\\u1FAFF\\u2600-\\u26FF\\u2700-\\u27BF\\u2300-\\u23FF\\u2B50\\u23F0\\u231A\\u25AA\\u25FE\\u2B06\\u2194\\u2B05\\u2195\\u21A9\\u21AA\\u2753\\u2754\\u2755\\u274C\\u274E\\u2199]$`
+	pattern := `^[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{1F700}-\x{1F77F}\x{1F780}-\x{1F7FF}\x{1F800}-\x{1F8FF}\x{1F900}-\x{1F9FF}\x{1FA00}-\x{1FA6F}\x{1FA70}-\x{1FAFF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}\x{2300}-\x{23FF}\x{2B50}\x{23F0}\x{231A}\x{25AA}-\x{25FE}\x{2B06}\x{2194}-\x{2199}\x{21A9}-\x{21AA}\x{2753}-\x{2755}\x{274C}\x{274E}]$`
 
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return false, errors.New("error compiling regex: " + err.Error())
-	}
+	re := regexp.MustCompile(pattern)
 	if re.MatchString(emoji) {
 		return true, nil
 	} else {
