@@ -172,11 +172,15 @@ func New(db *sql.DB) (AppDatabase, error) {
 	}, nil
 }
 
-var ErrUserNotFound = errors.New("User not found")
-var ErrMessageNotFound = errors.New("Message not found")
-var ErrConversationNotFound = errors.New("Conversation not found")
-var ErrMembershipNotFound = errors.New("Membership not found")
-var ErrReactionNotFound = errors.New("Reaction not found")
+var ErrUserNotFound = errors.New("user not found")
+var ErrMessageNotFound = errors.New("message not found")
+var ErrConversationNotFound = errors.New("conversation not found")
+var ErrMembershipNotFound = errors.New("membership not found")
+var ErrReactionNotFound = errors.New("reaction not found")
+var ErrNoSelfConversation = errors.New("can't create self conversation")
+var ErrNoGroup = errors.New("conversation is not a group")
+var ErrUserInGroup = errors.New("user is already in this group")
+var ErrUserNotInConversation = errors.New("user is not in this conversation")
 
 func (db *appdbimpl) Ping() error {
 	return db.c.Ping()
