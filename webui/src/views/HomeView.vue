@@ -1,55 +1,101 @@
 <script>
+import {RouterLink} from "vue-router";
+
 export default {
-	data: function() {
-		return {
-			errormsg: null,
-			loading: false,
-			some_data: null,
-		}
-	},
-	methods: {
-		async refresh() {
-			this.loading = true;
-			this.errormsg = null;
-			try {
-				let response = await this.$axios.get("/");
-				this.some_data = response.data;
-			} catch (e) {
-				this.errormsg = e.toString();
-			}
-			this.loading = false;
-		},
-	},
-	mounted() {
-		this.refresh()
-	}
+  components: RouterLink,
+  data: function() {
+    return {
+      error: null,
+      ID: sessionStorage.getItem("ID"),
+      username: sessionStorage.getItem("username"),
+      photo: sessionStorage.getItem("photo"),
+      userWanted: "",
+      convs: [
+        {
+          conversation: {
+            ID : 0,
+            type: "",
+            name: "",
+            photo: "",
+            msg_unread: 0,
+            last_mess: "",
+            date_time: ""
+          }
+        }
+      ],
+
+      showLoading: false,
+      showSearchInput: false,
+    }
+  },
+
+  mounted() {
+    this.getConversations();
+  },
+
+  methods: {
+    async doLogout() {
+      sessionStorage.clear();
+      this.$router.push({ path: "/" });
+    },
+
+    async getConversations() {
+      this.error = null;
+      this.showLoading = true;
+      try {
+        let response = await this.$axios.get("/conversations", {
+          headers: {
+            Authorization: sessionStorage.getItem("ID"),
+          }
+        });
+        this.convs = response.data;
+        this.showLoading = false;
+      } catch (e) {
+        this.showLoading = false;
+        if (e.response && e.response.status === 400) {
+          this.error = "Failed to get conversations.";
+        } else if (e.response && e.response.status === 404) {
+          this.error = "User Not Found";
+        } else if (e.response && e.response.status === 500) {
+          this.error = "Server Error, please try again";
+        } else {
+          this.error = e.toString();
+        }
+        setTimeout(() => {
+          this.error = null;
+        }, 3000)
+      }
+    },
+
+    async getConversation(convID) {
+      this.error = null;
+      this.showLoading = true;
+      let response = await this.$axios.get("/conversations/:convID", {
+        headers: {
+          Authorization: sessionStorage.getItem("ID")
+        }
+      })
+    },
+
+    async searchUsers() {
+    },
+
+    async setMyUsername(){}
+
+    async toggleShowSearchInput() {
+      this.showSearchInput = !this.showSearchInput;
+      if (!this.showSearchInput) {
+        this.userWanted = ""
+      }
+    }
+
+  }
+
 }
 </script>
 
 <template>
-	<div>
-		<div
-			class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-			<h1 class="h2">Home page</h1>
-			<div class="btn-toolbar mb-2 mb-md-0">
-				<div class="btn-group me-2">
-					<button type="button" class="btn btn-sm btn-outline-secondary" @click="refresh">
-						Refresh
-					</button>
-					<button type="button" class="btn btn-sm btn-outline-secondary" @click="exportList">
-						Export
-					</button>
-				</div>
-				<div class="btn-group me-2">
-					<button type="button" class="btn btn-sm btn-outline-primary" @click="newItem">
-						New
-					</button>
-				</div>
-			</div>
-		</div>
 
-		<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
-	</div>
 </template>
 
 <style>
