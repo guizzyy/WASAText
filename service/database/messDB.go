@@ -39,7 +39,7 @@ func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
 	if isIn, err := db.IsUserInConv(mess.Conv, mess.Sender); err != nil {
 		return fmt.Errorf("error in checking if the user is in conversation: %w", err)
 	} else if !isIn {
-		return fmt.Errorf("user is not in conversation")
+		return ErrUserNotInConversation
 	}
 
 	//	Insert the new message in the database (also with the case of forward message)

@@ -1,0 +1,13 @@
+FROM golang:1.17.13 AS builder
+LABEL authors="guizzyy"
+
+# Copy GO code #
+WORKDIR /src/
+COPY . .
+
+# Build executables #
+RUN go build -o /app/webapi ./cmd/webapi
+
+
+
+ENTRYPOINT ["top", "-b"]

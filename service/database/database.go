@@ -161,7 +161,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 		for table, query := range tables {
 			if _, err = db.Exec(query); err != nil {
-				return nil, fmt.Errorf("error creating table %s: %v", table, err)
+				return nil, fmt.Errorf("error creating table %s: %w", table, err)
 			}
 		}
 

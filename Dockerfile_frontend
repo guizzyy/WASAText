@@ -1,0 +1,6 @@
+FROM node:lts AS builder
+LABEL authors="guizzyy"
+
+
+
+ENTRYPOINT ["top", "-b"]
