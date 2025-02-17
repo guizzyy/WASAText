@@ -8,20 +8,23 @@
         error: null,
         photo: "",
         username: "",
-        ID: 0
+        ID: 0,
+        message: ""
       }
     },
     methods:{
-      async doLogin(){
+      async doLogin(e){
+        e.preventDefault();
         if (this.username === ""){
           this.error = "Username is required";
         } else {
           this.error = null;
           try {
             let response = await this.$axios.post("/session", {username: this.username})
-            sessionStorage.setItem("ID", response.data.id);
-            sessionStorage.setItem("username", response.data.username);
-            sessionStorage.setItem("photo", response.data.photo);
+            sessionStorage.setItem("ID", response.data.user.id);
+            sessionStorage.setItem("username", response.data.user.username);
+            sessionStorage.setItem("photo", response.data.user.photo);
+            sessionStorage.setItem("message", response.data.message);
             this.$router.push({ path : "/conversations" })
           } catch (e) {
             if (e.response && e.response.status === 400) {
@@ -31,41 +34,39 @@
             } else {
               this.error = e.toString();
             }
-            setTimeout(() => {
-              this.error = null;
-            }, 5000)
           }
         }
+        setTimeout(() => {
+          this.error = null;
+        }, 2500)
       }
     }
   }
 </script>
 
 <template>
-  <div>
-    <ErrorMsg v-if="error" :msg="error"></ErrorMsg>/
-  </div>
 
-  <div>
-    <div class="site-name" style="top: 15%">
-      <h1>WASAText</h1>
-    </div>
-
-    <div style="top: 40%; width: 100%; text-align: center; height: 100%">
-      <div class="Message title">
-        <h2>Welcome to WASAText, {{username}}!</h2>
-      </div>
+  <div class="d-flex position-relative">
+    <div class="d-flex position-absolute top-0 end-0 mt-3" style="padding-right: 10px">
+      <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
     </div>
   </div>
 
-  <div style="top: 50%; left: 0; width: 100%; height: 100%; padding-top: 1.25rem">
-    <form @submit.prevent="doLogin">
-      <div>
-        <input id="username-given" v-model="username" type="text" placeholder="Enter your username" autocomplete="off"></input>
-        <div>
+  <div class="d-flex justify-content-center position-absolute" style="top: 30%; width: 100%; height: 100%;">
+    <div class="justify-content-between flex-wrap flex-md-nowrap align-items-center">
+      <h2 class="h2 text-center" v-if="username">Welcome to WASAText, {{ username }}</h2>
+      <h2 class="h2" v-else>Welcome to WASAText</h2>
+    </div>
+  </div>
+
+  <div class="d-flex justify-content-center position-absolute" style="top: 52%; left: 0; width: 100%; height: 100%; padding-top: 1.5rem">
+    <form @submit="doLogin" class="mt-6">
+      <div class="flex items-center justify-center min-h-screen">
+        <input id="username-given" v-model="username" type="text" placeholder="Enter your username" autocomplete="off" maxlength="16"
+               class="w-full p-3 rounded-md text-black border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 form-control">
+        <div class="text-center" style="padding-top: 1.5rem">
           <button type="submit">
-            <!-- INSERT AN IMAGE FOR THE BUTTON -->
-            <span>Login</span>
+              <span>Start Chatting</span>
           </button>
         </div>
       </div>
@@ -73,10 +74,9 @@
   </div>
 
 
-
 </template>
 
-<style scoped>
+<style>
 
 body, html {
   height: 100%;
@@ -84,16 +84,16 @@ body, html {
   padding: 0;
 }
 
-.site-name {
+.h2 {
   display: flex;
   justify-content: center;
   position: absolute;
   width: 100%;
   height: 100%;
   left: 0;
-  font-size: 3rem;
+  font-size: 5rem;
   font-weight: bold;
-  text-shadow: 2px 2px 5px #b02a37;
+  text-shadow: 2px 2px 3px #5c636a;
 }
 
 .site-name h1 {

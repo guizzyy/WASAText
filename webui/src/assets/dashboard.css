@@ -1,5 +1,7 @@
 body {
 	font-size: 0.875rem;
+	background-image: url("https://i.pinimg.com/736x/ae/5b/c6/ae5bc6678b954ca7f13e06903fd24f21.jpg");
+	background-size: cover;
 }
 
 .feather {

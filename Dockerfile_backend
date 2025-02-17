@@ -2,11 +2,29 @@ FROM golang:1.19.1 AS builder
 
 ### Copy Go code
 WORKDIR /src/
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the entire project #
 COPY . .
 
 ### Build executables
 RUN go build -o /app/webapi ./cmd/webapi
 
+# Create the image #
+FROM alpine:latest
+
+# Set new working dir #
+WORKDIR /app/
+
+# Copy built executable from the builder stage #
+COPY --from=builder /app/webapi ./
+
+# Expose necessary ports #
+EXPOSE 3000 4000
+
+# Run the application #
+CMD ["/app/webapi"]
 
 ### Create final container
 FROM debian:bullseye
