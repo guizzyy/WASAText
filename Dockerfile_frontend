@@ -1,6 +1,17 @@
-FROM node:lts AS builder
-LABEL authors="guizzyy"
+FROM node:lts as builder
+
+### Copy Vue.js code
+WORKDIR /app
+COPY webui webui
+
+### Build Vue.js into plain HTML/CSS/JS
+WORKDIR /app/webui
+RUN yarn install
+RUN yarn run build-prod
 
 
+### Create final container
+FROM nginx:stable
 
-ENTRYPOINT ["top", "-b"]
+### Copy the (built) app from the builder image
+COPY --from=builder /app/webui/dist /usr/share/nginx/html

@@ -80,7 +80,7 @@ export default {
     async searchUsers() {
     },
 
-    async setMyUsername(){}
+    async setMyUsername(){},
 
     async toggleShowSearchInput() {
       this.showSearchInput = !this.showSearchInput;
