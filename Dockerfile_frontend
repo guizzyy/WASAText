@@ -5,13 +5,10 @@ WORKDIR /app
 COPY webui webui
 
 ### Build Vue.js into plain HTML/CSS/JS
+### THIS IS JUST FOR THE DEVELOPMENT
 WORKDIR /app/webui
 RUN yarn install
-RUN yarn run build-prod
 
+EXPOSE 5173
 
-### Create final container
-FROM nginx:stable
-
-### Copy the (built) app from the builder image
-COPY --from=builder /app/webui/dist /usr/share/nginx/html
+CMD ["yarn", "dev", "--host"]

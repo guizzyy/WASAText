@@ -52,11 +52,14 @@
     </div>
   </div>
 
-  <div class="d-flex justify-content-center position-absolute" style="top: 30%; width: 100%; height: 100%;">
+  <div class="d-flex justify-content-center position-absolute" style="top: 27%; width: 100%; height: 100%;">
     <div class="justify-content-between flex-wrap flex-md-nowrap align-items-center">
-      <h2 class="h2 text-center" v-if="username">Welcome to WASAText, {{ username }}</h2>
-      <h2 class="h2" v-else>Welcome to WASAText</h2>
+      <h2 class="h2 text-center">Welcome to WASAText</h2>
     </div>
+  </div>
+
+  <div class="d-flex justify-content-center position-absolute" style="top: 40%; width: 100%; height: 100%;">
+    <h2 class="h2 text-center" v-if="username"> {{ username }}</h2>
   </div>
 
   <div class="d-flex justify-content-center position-absolute" style="top: 52%; left: 0; width: 100%; height: 100%; padding-top: 1.5rem">
@@ -85,6 +88,7 @@ body, html {
 }
 
 .h2 {
+  color: snow;
   display: flex;
   justify-content: center;
   position: absolute;

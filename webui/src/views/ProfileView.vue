@@ -14,6 +14,9 @@ export default {
         showSearchBar: true,
       }
     }
+  },
+  methods: {
+
   }
 }
 </script>
@@ -26,6 +29,20 @@ export default {
       <span class="navbar-toggler-icon"></span>
     </button>
   </header>
+
+  <div class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3"
+       style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white;">
+
+    <div style="flex-grow: 1;">
+      <span> {{ username }}</span>
+    </div>
+
+    <div class="w-100"> <!-- Ensures buttons take full width -->
+      <button class="rounded-3 w-100 mb-2">Change your username</button>
+      <button class="rounded-3 w-100">Change your profile image</button>
+    </div>
+
+  </div>
 
 </template>
 

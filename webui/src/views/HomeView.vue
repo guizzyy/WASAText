@@ -13,6 +13,7 @@ export default {
       message: sessionStorage.getItem("message"),
       convs: [],
       newUser: "",
+      newConv: {},
 
       showLoading: false,
     }
@@ -23,10 +24,6 @@ export default {
   },
 
   methods: {
-    async doLogout() {
-      sessionStorage.clear();
-      this.$router.push({ path: "/" });
-    },
 
     async getConversations() {
       this.error = null;
@@ -69,12 +66,35 @@ export default {
     async startConversation() {
       this.error = null;
       this.showLoading = true;
-      let response = await this.$axios.post("/conversations", {
-        headers: {
-          Authorization: sessionStorage.getItem("ID")
-        },
-      })
-
+      if (this.newUser.length < 3 || this.newUser.length > 16) {
+        this.error = "Enter a valid username";
+      }
+      else {
+        try {
+          let response = await this.$axios.post("/conversations",
+              {username: this.newUser},
+              {
+                headers: {
+                  'Content-type': 'application/json',
+                  Authorization: sessionStorage.getItem("ID"),
+                }
+              }
+          )
+          this.newConv = response.data;
+          this.$router.push({path: `/conversations/${this.newConv.id}`});
+        } catch (e) {
+          if (e.response && e.response.status === 400) {
+            this.error = "Invalid username (it must be between 3 and 16 characters.)";
+          } else if (e.response && e.response.status === 500) {
+            this.error = "Server Error, please try again later.";
+          } else {
+            this.error = e.toString();
+          }
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
     }
   },
 }
@@ -100,7 +120,7 @@ export default {
             <li class="nav-item">
               <RouterLink to="/conversations" class="nav-link" @click="getConversations">
                 <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#home"/></svg>
-                Home
+                Homepage
               </RouterLink>
             </li>
             <li class="nav-item">
@@ -134,7 +154,7 @@ export default {
             </li>
           </ul>
 
-          <div class="new-chat-button">
+          <div class="new-chat-button" @click="startConversation">
             <svg class="feather" width="24" height="24"><use href="/feather-sprite-v4.29.0.svg#message-circle"/></svg>
             <span style="font-size: 30px; position: absolute; justify-content: center; font-weight: bold; bottom: .25rem">+</span>
           </div>
@@ -163,7 +183,7 @@ export default {
   right: 30px;
   width: 50px;
   height: 50px;
-  background-color: #ff9229; /* Change color as needed */
+  background-color: #298dff; /* Change color as needed */
   color: white;
   border-radius: 50%;
   display: flex;
@@ -175,7 +195,7 @@ export default {
 }
 
 .new-chat-button:hover {
-  background-color: peru;
+  background-color: #0a53a8;
 }
 
 .alert-success {
