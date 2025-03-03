@@ -16,7 +16,21 @@ export default {
     }
   },
   methods: {
+    async logout() {
 
+    },
+
+    async setMyUserName() {
+
+    },
+
+    async setMyPhoto() {
+
+    },
+
+    async createGroup() {
+
+    },
   }
 }
 </script>
@@ -31,15 +45,21 @@ export default {
   </header>
 
   <div class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3"
-       style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white;">
+       style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
 
-    <div style="flex-grow: 1;">
-      <span> {{ username }}</span>
+    <div class="profile-pic">
     </div>
 
+    <div style="flex-grow: 1;">
+      <span> {{ this.username }}</span>
+    </div>
+
+
+
     <div class="w-100"> <!-- Ensures buttons take full width -->
+      <button class="rounded-3 w-100 mb-1">Change your profile image</button>
       <button class="rounded-3 w-100 mb-2">Change your username</button>
-      <button class="rounded-3 w-100">Change your profile image</button>
+      <button class="rounded-3 w-100 mb-3">Logout</button>
     </div>
 
   </div>
@@ -48,4 +68,22 @@ export default {
 
 <style>
 
+.profile-pic {
+  margin-top: 50px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 20px;
+  background-color: black;
+}
+
+button {
+  color: white;
+  background-color: #0b5ed7;
+}
+
+button:hover {
+  background-color: #06357a;
+}
 </style>

@@ -1,6 +1,5 @@
 <script>
 import {RouterLink} from "vue-router";
-import NotificationMsg from "../components/NotificationMsg.vue";
 
 export default {
   components: RouterLink,
@@ -13,9 +12,12 @@ export default {
       message: sessionStorage.getItem("message"),
       convs: [],
       newUser: "",
+      searchResults: [],
+      userSelected: null,
       newConv: {},
 
       showLoading: false,
+      showUserSearch: false,
     }
   },
 
@@ -24,6 +26,43 @@ export default {
   },
 
   methods: {
+    openSearchBar() {
+      this.showUserSearch = true;
+    },
+
+    closeSearchBar() {
+      this.showUserSearch = false;
+      this.newUser = "";
+      this.searchResults = [];
+      this.userSelected = null;
+    },
+
+    async searchUsers() {
+      this.error = null;
+      this.showLoading = true;
+      if (this.newUser.length === 0) {
+        this.searchResults = []
+      }
+      try {
+        let response = await this.$axios.get(`/users/${this.ID}/search?username=${this.newUser}`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        });
+        this.searchResults = response.data;
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response;
+        } else if (e.response && e.response.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
+    },
 
     async getConversations() {
       this.error = null;
@@ -31,25 +70,27 @@ export default {
       try {
         let response = await this.$axios.get("/conversations", {
           headers: {
-            Authorization: sessionStorage.getItem("ID"),
+            Authorization: "Bearer " + sessionStorage.getItem("ID"),
           }
         });
         this.convs = response.data;
-        this.showLoading = false;
       } catch (e) {
         this.showLoading = false;
-        if (e.response && e.response.status === 400) {
+        if (e.response?.status === 400) {
           this.error = "Failed to get conversations.";
-        } else if (e.response && e.response.status === 404) {
+        } else if (e.response?.status === 404) {
           this.error = "User Not Found";
-        } else if (e.response && e.response.status === 500) {
+        } else if (e.response?.status === 500) {
           this.error = "Server Error, please try again";
+          console.error("Error fetching the conversations")
         } else {
           this.error = e.toString();
         }
         setTimeout(() => {
           this.error = null;
         }, 3000)
+      } finally {
+        this.showLoading = false;
       }
     },
 
@@ -63,34 +104,33 @@ export default {
       })
     },
 
-    async startConversation() {
+    async startConversation(user) {
       this.error = null;
       this.showLoading = true;
-      if (this.newUser.length < 3 || this.newUser.length > 16) {
-        this.error = "Enter a valid username";
-      }
-      else {
-        try {
-          let response = await this.$axios.post("/conversations",
-              {username: this.newUser},
-              {
-                headers: {
-                  'Content-type': 'application/json',
-                  Authorization: sessionStorage.getItem("ID"),
-                }
+      try {
+        let response = await this.$axios.post("/conversations",
+            {username: user.username},
+            {
+              headers: {
+                'Content-type': 'application/json',
+                Authorization: sessionStorage.getItem("ID"),
               }
-          )
-          this.newConv = response.data;
-          this.$router.push({path: `/conversations/${this.newConv.id}`});
-        } catch (e) {
-          if (e.response && e.response.status === 400) {
-            this.error = "Invalid username (it must be between 3 and 16 characters.)";
-          } else if (e.response && e.response.status === 500) {
-            this.error = "Server Error, please try again later.";
-          } else {
-            this.error = e.toString();
-          }
+            }
+        )
+        this.newConv = response.data;
+        this.$router.push({path: `/conversations/${this.newConv.id}`});
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = "Invalid username (it must be between 3 and 16 characters).";
+        } else if (e.response?.status === 500) {
+          this.error = "Server Error, please try again later.";
+        } else {
+          this.error = "An unexpected error occurred.";
+          console.error(e); // Log for debugging
         }
+      } finally {
+        this.closeSearchBar();
+        this.showLoading = false;
       }
       setTimeout(() => {
         this.error = null;
@@ -137,7 +177,6 @@ export default {
         <div class="d-flex position-relative">
           <div class="d-flex position-absolute top-0 end-0 mt-3">
             <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
-            <NotificationMsg v-else :msg="error"></NotificationMsg>
           </div>
 
         </div>
@@ -145,7 +184,7 @@ export default {
         <div class="home-container">
           <h1> Chats </h1>
 
-          <p v-if="convs.length === 0">No conversation started yet...</p>
+          <p v-if="this.convs.length === 0">No conversation started yet...</p>
           <ul v-else>
             <li v-for="conv in convs" :key="conv.id">
               <router-link to="/conversations/:convID">
@@ -154,9 +193,21 @@ export default {
             </li>
           </ul>
 
-          <div class="new-chat-button" @click="startConversation">
+          <div class="new-chat-button" @click="openSearchBar">
             <svg class="feather" width="24" height="24"><use href="/feather-sprite-v4.29.0.svg#message-circle"/></svg>
             <span style="font-size: 30px; position: absolute; justify-content: center; font-weight: bold; bottom: .25rem">+</span>
+          </div>
+
+          <div v-if="showUserSearch" class="overlay">
+            <div class="search-box position-relative">
+              <input v-model="newUser" @input="searchUsers" placeholder="Search for a user..." />
+              <ul>
+                <li v-for="user in searchResults" :key="user.id" @click="startConversation(user)">
+                  {{ user.username }}
+                </li>
+              </ul>
+              <button @click="closeSearchBar">Cancel</button>
+            </div>
           </div>
         </div>
 
@@ -198,9 +249,51 @@ export default {
   background-color: #0a53a8;
 }
 
-.alert-success {
-  background-color: #d4edda;
-  color: #155724;
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.search-box {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 30%;
+  text-align: center;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.search-box ul {
+  list-style: none;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.search-box li {
+  padding: 10px;
+  cursor: pointer;
+  color: white;
+  background-color: rgba(0, 0, 255, 0.38);
+}
+
+.search-box li:hover {
+  background: #0a53a8;
 }
 
 </style>

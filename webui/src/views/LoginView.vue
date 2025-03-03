@@ -16,7 +16,7 @@
       async doLogin(e){
         e.preventDefault();
         if (this.username === ""){
-          this.error = "Username is required";
+          this.error = "username is required";
         } else {
           this.error = null;
           try {
@@ -30,7 +30,7 @@
             if (e.response && e.response.status === 400) {
               this.error = "Invalid username (it must be between 3 and 16 characters.)";
             } else if (e.response && e.response.status === 500) {
-              this.error = "Server Error, please try again later.";
+              this.error = e.response.data
             } else {
               this.error = e.toString();
             }

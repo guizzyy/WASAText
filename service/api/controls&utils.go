@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 // Check the authorization token provided whether is correct, missed, unknown
@@ -26,7 +27,8 @@ func (rt *_router) checkToken(r *http.Request) (bool, uint64, error) {
 	if authHeader == "" {
 		return false, 0, nil
 	}
-	token, err := strconv.ParseUint(authHeader, 10, 64)
+	strToken := strings.Split(authHeader, " ")[1]
+	token, err := strconv.ParseUint(strToken, 10, 64)
 	if err != nil {
 		return false, 0, err
 	}
