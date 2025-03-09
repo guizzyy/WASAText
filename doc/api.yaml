@@ -385,7 +385,7 @@ paths:
       operationId: sendMessage
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/Message'
         required: true
@@ -393,7 +393,7 @@ paths:
         '200':
           description: message correctly sent
           content:
-            application/json:
+            multipart/form-data:
               schema:
                 $ref: '#/components/schemas/Message'
         '400': {$ref: '#/components/responses/BadRequest'}

@@ -1,5 +1,6 @@
 <script>
 import {RouterLink} from "vue-router";
+import {warn} from "vue";
 
 export default {
   components: RouterLink,
@@ -8,9 +9,10 @@ export default {
       error: null,
       ID: sessionStorage.getItem("ID"),
       username: sessionStorage.getItem("username"),
-      photo: sessionStorage.getItem("photo"),
+      photo: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
       message: sessionStorage.getItem("message"),
       convs: [],
+      convID: null,
       newUser: "",
       searchResults: [],
       userSelected: null,
@@ -53,7 +55,7 @@ export default {
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response;
-        } else if (e.response && e.response.status === 500) {
+        } else if (e.response?.status === 500) {
           this.error = e.response.data
         } else {
           this.error = e.toString();
@@ -70,10 +72,10 @@ export default {
       try {
         let response = await this.$axios.get("/conversations", {
           headers: {
-            Authorization: "Bearer " + sessionStorage.getItem("ID"),
+            Authorization: sessionStorage.getItem("ID"),
           }
         });
-        this.convs = response.data;
+        this.convs = Array.isArray(response.data) ? response.data : [];
       } catch (e) {
         this.showLoading = false;
         if (e.response?.status === 400) {
@@ -94,16 +96,6 @@ export default {
       }
     },
 
-    async getConversation(convID) {
-      this.error = null;
-      this.showLoading = true;
-      let response = await this.$axios.get("/conversations/:convID", {
-        headers: {
-          Authorization: sessionStorage.getItem("ID")
-        }
-      })
-    },
-
     async startConversation(user) {
       this.error = null;
       this.showLoading = true;
@@ -119,6 +111,7 @@ export default {
         )
         this.newConv = response.data;
         this.$router.push({path: `/conversations/${this.newConv.id}`});
+        this.newConv = {};
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = "Invalid username (it must be between 3 and 16 characters).";
@@ -131,6 +124,32 @@ export default {
       } finally {
         this.closeSearchBar();
         this.showLoading = false;
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
+    },
+
+    async getConversation() {
+      this.error = null;
+      this.showLoading = true;
+      try {
+        let response = await this.$axios.get(`conversations/${this.convID}`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        });
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = "Invalid username (it must be between 3 and 16 characters).";
+        } else if (e.response?.status === 500) {
+          this.error = "Server Error, please try again later.";
+        } else {
+          this.error = "An unexpected error occurred.";
+          console.error(e); // Log for debugging
+        }
+      } finally {
+        this.showLoading = false
       }
       setTimeout(() => {
         this.error = null;
@@ -152,6 +171,9 @@ export default {
   <div class="container-fluid">
     <div class="row">
       <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+        <div>
+          <img :src="this.photo" alt="Stored image" class="profile-pic">
+        </div>
         <div class="position-sticky pt-3 sidebar-sticky">
           <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
             <span>Options</span>
@@ -169,11 +191,17 @@ export default {
                 Profile
               </RouterLink>
             </li>
+            <li class="nav-item">
+              <RouterLink :to=" '/' " class="nav-link">
+                <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#layout"/></svg>
+                Logout
+              </RouterLink>
+            </li>
           </ul>
         </div>
       </nav>
 
-      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" style="height: 90%">
         <div class="d-flex position-relative">
           <div class="d-flex position-absolute top-0 end-0 mt-3">
             <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
@@ -185,13 +213,13 @@ export default {
           <h1> Chats </h1>
 
           <p v-if="this.convs.length === 0">No conversation started yet...</p>
-          <ul v-else>
-            <li v-for="conv in convs" :key="conv.id">
-              <router-link to="/conversations/:convID">
-                {{ conv.name }}
+          <div v-else class="chat-container">
+            <div class="chat-list">
+              <router-link v-for="conv in convs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat">
+                <strong>{{ conv.name }}</strong> {{ conv.last_message.text }}
               </router-link>
-            </li>
-          </ul>
+            </div>
+          </div>
 
           <div class="new-chat-button" @click="openSearchBar">
             <svg class="feather" width="24" height="24"><use href="/feather-sprite-v4.29.0.svg#message-circle"/></svg>
@@ -219,13 +247,14 @@ export default {
 
 </template>
 
-<style>
+<style scoped>
 
 .home-container {
   text-align: center;
   margin-top: 20px;
   padding: 20px;
   border-radius: 8px;
+  height: 90%;
 }
 
 .new-chat-button {
@@ -294,6 +323,51 @@ export default {
 
 .search-box li:hover {
   background: #0a53a8;
+}
+
+.profile-pic {
+  margin-top: 20px;
+  margin-left: 0px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: black;
+}
+
+.chat-container {
+  align-items: center;
+  justify-content: center;
+  height: auto;
+  margin: auto;
+}
+
+.chat-list {
+  width: auto;
+  height: 80vh;
+  overflow-y: scroll;
+  border: 1px solid black;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+}
+
+.chat {
+  height: 5em;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px;
+  border: none;
+  background-color: white;
+  cursor: pointer;
+  border-bottom: 1px solid #ddd;
+  text-decoration: none;
+  color: black;
+  font-family: inherit;
+}
+
+.chat:hover {
+  background-color: lightgray;
 }
 
 </style>
