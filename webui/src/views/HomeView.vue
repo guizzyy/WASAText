@@ -1,9 +1,10 @@
 <script>
 import {RouterLink} from "vue-router";
-import {warn} from "vue";
+import ErrorMsg from "../components/ErrorMsg.vue";
+import NotificationMsg from "../components/NotificationMsg.vue";
 
 export default {
-  components: RouterLink,
+  components: {NotificationMsg, RouterLink, ErrorMsg},
   data: function() {
     return {
       error: null,
@@ -15,7 +16,7 @@ export default {
       convID: null,
       newUser: "",
       searchResults: [],
-      userSelected: null,
+      searchTimeout: null,
       newConv: {},
 
       showLoading: false,
@@ -25,9 +26,18 @@ export default {
 
   mounted() {
     this.getConversations();
+    setTimeout(() => {
+      sessionStorage.removeItem("message");
+      this.message = "";  // Clear the message in the component
+    }, 3000);
   },
 
   methods: {
+    logout() {
+      sessionStorage.clear();
+      this.$router.push({path: "/"});
+    },
+
     openSearchBar() {
       this.showUserSearch = true;
     },
@@ -36,34 +46,37 @@ export default {
       this.showUserSearch = false;
       this.newUser = "";
       this.searchResults = [];
-      this.userSelected = null;
     },
 
     async searchUsers() {
-      this.error = null;
-      this.showLoading = true;
-      if (this.newUser.length === 0) {
-        this.searchResults = []
-      }
-      try {
-        let response = await this.$axios.get(`/users/${this.ID}/search?username=${this.newUser}`, {
-          headers: {
-            Authorization: sessionStorage.getItem("ID")
-          }
-        });
-        this.searchResults = response.data;
-      } catch (e) {
-        if (e.response?.status === 400) {
-          this.error = e.response;
-        } else if (e.response?.status === 500) {
-          this.error = e.response.data
-        } else {
-          this.error = e.toString();
-        }
-      }
-      setTimeout(() => {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(async () => {
         this.error = null;
-      }, 2500)
+        this.showLoading = true;
+        if (this.newUser.length === 0) {
+          this.searchResults = []
+        }
+        try {
+          let response = await this.$axios.get(`/users/${this.ID}/search?username=${this.newUser}`, {
+            headers: {
+              Authorization: sessionStorage.getItem("ID")
+            }
+          });
+          this.searchResults = response.data;
+        } catch (e) {
+          if (e.response?.status === 400) {
+            this.error = e.response.data;
+          } else if (e.response?.status === 500) {
+            this.error = e.response.data
+          } else {
+            this.error = e.toString();
+          }
+        }
+        setTimeout(() => {
+          this.error = null;
+          this.message = "";
+        }, 2500)
+      }, 300);
     },
 
     async getConversations() {
@@ -161,50 +174,36 @@ export default {
 
 <template>
 
-  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#/">WASA Text</a>
-    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
+
+    <div class="set-buttons d-flex align-items-center me-3 ms-auto gap-3">
+      <button class="icon-btn" aria-label="Home">
+        <router-link to="/conversations" class="icon-btn">
+          Home
+        </router-link>
+      </button>
+      <button class="icon-btn" aria-label="Profile">
+        <router-link :to="'/users/' + this.ID" class="icon-btn">
+          Profile
+        </router-link>
+      </button>
+      <button class="icon-btn" aria-label="Logout" @click="logout">
+          Logout
+      </button>
+      <div>
+        <img :src="this.photo" alt="Stored image" class="profile-pic-header">
+      </div>
+    </div>
   </header>
 
   <div class="container-fluid">
     <div class="row">
-      <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-        <div>
-          <img :src="this.photo" alt="Stored image" class="profile-pic">
-        </div>
-        <div class="position-sticky pt-3 sidebar-sticky">
-          <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
-            <span>Options</span>
-          </h6>
-          <ul class="nav flex-column">
-            <li class="nav-item">
-              <RouterLink to="/conversations" class="nav-link" @click="getConversations">
-                <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#home"/></svg>
-                Homepage
-              </RouterLink>
-            </li>
-            <li class="nav-item">
-              <RouterLink :to=" '/users/' + ID + '/' " class="nav-link">
-                <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#layout"/></svg>
-                Profile
-              </RouterLink>
-            </li>
-            <li class="nav-item">
-              <RouterLink :to=" '/' " class="nav-link">
-                <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#layout"/></svg>
-                Logout
-              </RouterLink>
-            </li>
-          </ul>
-        </div>
-      </nav>
-
-      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4" style="height: 90%">
+      <main style="height: 90%">
         <div class="d-flex position-relative">
           <div class="d-flex position-absolute top-0 end-0 mt-3">
             <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
+            <NotificationMsg v-if="message" :message="message"></NotificationMsg>
           </div>
 
         </div>
@@ -247,7 +246,7 @@ export default {
 
 </template>
 
-<style scoped>
+<style>
 
 .home-container {
   text-align: center;
@@ -325,11 +324,9 @@ export default {
   background: #0a53a8;
 }
 
-.profile-pic {
-  margin-top: 20px;
-  margin-left: 0px;
-  width: 200px;
-  height: 200px;
+.profile-pic-header {
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
   object-fit: cover;
   background-color: black;
@@ -368,6 +365,28 @@ export default {
 
 .chat:hover {
   background-color: lightgray;
+}
+
+.set-buttons {
+  position: absolute;
+  top: auto;
+  right: 1em;
+  display: flex;
+}
+
+.icon-btn {
+  display: flex;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem; /* Adjust size of icons */
+  cursor: pointer;
+  transition: color 0.3s ease-in-out;
+  text-decoration: none;
+}
+
+.icon-btn:hover {
+  color: #ccc; /* Slight color change on hover */
 }
 
 </style>

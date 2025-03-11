@@ -1,8 +1,9 @@
 <script>
 import {RouterLink} from "vue-router";
+import NotificationMsg from "../components/NotificationMsg.vue";
 
 export default {
-  components: RouterLink,
+  components: {RouterLink, NotificationMsg},
   data: function() {
     return {
       error: null,
@@ -21,9 +22,9 @@ export default {
   },
 
   methods: {
-    async logout() {
-      sessionStorage.clear()
-      this.$router.push({path: '/'})
+    logout() {
+      sessionStorage.clear();
+      this.$router.push({path: '/'});
     },
 
     openUsernameBar() {
@@ -55,12 +56,14 @@ export default {
 
     async setMyUserName() {
       try {
+        this.error = null;
         let response = await this.$axios.put(`users/${this.ID}/username`, {username: this.newUsername},{
           headers: { Authorization: sessionStorage.getItem("ID") }
             });
-        this.notification = response.data;
-        this.$set(this, 'username', this.newUsername)
-        this.closeUsernameBar()
+        this.notification = response.data.report;
+        sessionStorage.setItem('username', this.newUsername);
+        this.username = this.newUsername;
+        this.closeUsernameBar();
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response;
@@ -72,6 +75,7 @@ export default {
       }
       setTimeout(() => {
         this.error = null;
+        this.notification = "";
       }, 2500)
     },
 
@@ -89,8 +93,10 @@ export default {
             Authorization : sessionStorage.getItem("ID")
           }
         });
-        this.notification = response.data;
-        this.$set(this, 'photo', this.newPhoto)
+        this.notification = response.data.message;
+        let newUrl = response.data.photo;
+        sessionStorage.setItem("photo", newUrl);
+        this.photo = newUrl;
         this.closePhotoBar();
       } catch (e) {
         if (e.response?.status === 400) {
@@ -103,48 +109,55 @@ export default {
       }
       setTimeout(() => {
         this.error = null;
+        this.notification = "";
       }, 2500)
     },
   },
-
-  computed: {}
 }
 </script>
 
 <template>
 
   <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#/">WASA Text</a>
-    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
+
+    <div class="set-buttons d-flex align-items-center me-3">
+      <button class="icon-btn" aria-label="Home">
+        <router-link to="/conversations" class="icon-btn">
+          Home
+        </router-link>
+      </button>
+      <button class="icon-btn" aria-label="Profile">
+        <router-link :to="'/users/' + this.ID" class="icon-btn">
+          Profile
+        </router-link>
+      </button>
+      <button class="icon-btn" aria-label="Logout" @click="logout">
+          Logout
+      </button>
+      <div>
+        <img :src="this.photo" alt="Stored image" class="profile-pic-header">
+      </div>
+    </div>
+    <NotificationMsg v-if="notification" :message="notification"></NotificationMsg>
   </header>
 
 
   <div class="w-75 h-auto align-items-center">
-    <div class="h-50 w-25 d-flex justify-content-center">
-      <router-link to="/conversations" class="home-button">
-        ← Homepage
-      </router-link>
-    </div>
-
     <div class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3 rounded-3"
          style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
-
-
       <div>
         <img :src="this.photo" alt="Profile pic" class="profile-pic">
       </div>
 
       <div style="flex-grow: 1; color: black">
-        <span> {{this.username}} </span>
+        <strong style="font-size: large"> {{this.username}} </strong>
       </div>
 
 
       <div class="w-100">
         <button class="rounded-3 w-100 mb-1" @click="openPhotoBar">Change your profile image</button>
         <button class="rounded-3 w-100 mb-2" @click="openUsernameBar">Change your username</button>
-        <button class="rounded-3 w-100 mb-3" @click="logout">Logout</button>
       </div>
 
       <div v-if="showUsernameBar" class="overlay">
@@ -218,25 +231,13 @@ export default {
 }
 
 .profile-pic {
-  margin-top: 50px;
   width: 250px;
   height: 250px;
   border-radius: 50%;
   object-fit: cover;
+  margin-top: 20px;
   margin-bottom: 20px;
   background-color: black;
-}
-
-.home-button {
-  font-size: 1.5rem;
-  font-weight: bold;
-  text-decoration: none;
-  color: white;
-  padding: 10px;
-  border-radius: 10px;
-  display: flex;
-  gap: 10px;
-  transition: 0.3s ease-in-out;
 }
 
 button {

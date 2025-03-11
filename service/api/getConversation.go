@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
+	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
@@ -38,9 +39,21 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
+	members, err := rt.db.GetMembers(convID, id)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during getMembers db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := utilities.ConvResponse{
+		Messages: messages,
+		Members:  members,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err = json.NewEncoder(w).Encode(messages); err != nil {
+	if err = json.NewEncoder(w).Encode(response); err != nil {
 		context.Logger.WithError(err).Error("json get conversation encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

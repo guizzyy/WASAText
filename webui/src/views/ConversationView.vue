@@ -6,16 +6,14 @@ export default {
   data: function() {
     return {
       error: null,
-      myID: sessionStorage.getItem("ID"),
+      myID: parseInt(sessionStorage.getItem("ID")),
       myUsername: sessionStorage.getItem("username"),
-      myPhoto: sessionStorage.getItem("photo"),
+      myPhoto: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
       convID: this.$route.params.convID,
       messages: [],
+      convs: [],
       sentMessage: "",
       sentPhoto: "",
-      receiverID: "",
-      receiverName: "",
-      receiverPhoto: "",
       membersConv: [],
 
       showLoading: false,
@@ -78,7 +76,8 @@ export default {
             Authorization: sessionStorage.getItem("ID")
           }
         });
-        this.messages = Array.isArray(response.data.reverse()) ? response.data : [];
+        this.messages = response.data.messages;
+        this.membersConv = response.data.members;
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response;
@@ -100,35 +99,34 @@ export default {
 
 <template>
 
-  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6">WASA Text</a>
-    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
+
+    <div class="set-buttons d-flex align-items-center me-3">
+      <button class="icon-btn" aria-label="Home">
+        <router-link to="/conversations" class="icon-btn">
+          Home
+        </router-link>
+      </button>
+      <button class="icon-btn" aria-label="Profile">
+        <router-link :to="'/users/' + this.myID" class="icon-btn">
+          Profile
+        </router-link>
+      </button>
+      <button class="icon-btn" aria-label="Logout">
+        <router-link to="/" class="icon-btn">
+          Logout
+        </router-link>
+      </button>
+      <div>
+        <img :src="this.myPhoto" alt="Stored image" class="profile-pic-header">
+      </div>
+    </div>
   </header>
 
   <div class="main-container">
     <div>
       <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-        <div class="position-sticky pt-3 sidebar-sticky">
-          <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
-            <span>Options</span>
-          </h6>
-          <ul class="nav flex-column">
-            <li class="nav-item">
-              <RouterLink to="/conversations" class="nav-link" @click="getConversation">
-                <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#home"/></svg>
-                Homepage
-              </RouterLink>
-            </li>
-            <li class="nav-item">
-              <RouterLink :to=" '/users/' + this.myID + '/' " class="nav-link">
-                <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#layout"/></svg>
-                Profile
-              </RouterLink>
-            </li>
-          </ul>
-        </div>
       </nav>
 
       <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -138,8 +136,8 @@ export default {
           </h1>
           <div v-else class="chat-box">
             <div class="messages-list">
-              <div v-for="mess in messages" :key="mess.id" class="message">
-                {{ mess.text }}
+              <div v-for="mess in messages" :key="mess.id" :class="{'my-mess': mess.sender === myID, 'receiver-mess': mess.sender !== myID}">
+                <div class="mess-bubble"> {{ mess.text }} </div>
               </div>
             </div>
           </div>
@@ -162,10 +160,10 @@ export default {
 <style>
 
 .home-messages {
-  text-align: center;
+  display: flex;
   margin-top: 20px;
-  padding: 20px;
   border-radius: 8px;
+  flex-direction: column;
 }
 
 .chat-input-box {
@@ -208,15 +206,70 @@ export default {
   height: fit-content;
 }
 
-.message {
-  color: white;
-  position: relative;
-  text-align: center;
+.messages-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+  overflow-y: auto;
+  padding: 20px;
 }
 
-.messages-list {
-  height: auto;
-  overflow-y: scroll;
+.my-mess {
+  align-self: flex-end;
+  max-width: 60%;
+}
+
+.receiver-mess {
+  align-self: flex-start;
+  max-width: 60%;
+}
+
+.mess-bubble {
+  padding: 10px 15px;
+  border-radius: 15px;
+  font-size: 16px;
+  position: relative;
+  word-wrap: break-word;
+  margin-bottom: 10px;
+}
+
+.my-mess .mess-bubble {
+  background-color: #0078ff;
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+
+.my-mess .mess-bubble::after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-left: 10px solid #0078ff;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  transform: translateY(-50%);
+}
+
+.receiver-mess .mess-bubble {
+  background-color: #ff9229;
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+
+.receiver-mess .mess-bubble::after {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-right: 10px solid #ff9229;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  transform: translateY(-50%);
 }
 
 </style>

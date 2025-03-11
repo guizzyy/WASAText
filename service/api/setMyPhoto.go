@@ -69,8 +69,9 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 	}
 
 	// Send the client a notification for the success of the operation
-	response := utilities.Notification{
-		Report: "Profile photo updated successfully",
+	response := utilities.PhotoResponse{
+		Message: "Profile photo updated successfully",
+		Photo:   filePath,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

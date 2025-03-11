@@ -12,11 +12,12 @@
         message: ""
       }
     },
+
     methods:{
       async doLogin(e){
         e.preventDefault();
         if (this.username === ""){
-          this.error = "username is required";
+          this.error = "Username is required";
         } else {
           this.error = null;
           try {
@@ -27,9 +28,9 @@
             sessionStorage.setItem("message", response.data.message);
             this.$router.push({ path : "/conversations" })
           } catch (e) {
-            if (e.response && e.response.status === 400) {
+            if (e.response?.status === 400) {
               this.error = "Invalid username (it must be between 3 and 16 characters.)";
-            } else if (e.response && e.response.status === 500) {
+            } else if (e.response?.status === 500) {
               this.error = e.response.data
             } else {
               this.error = e.toString();

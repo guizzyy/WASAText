@@ -299,6 +299,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bootstrap-icons@npm:^1.11.3":
+  version: 1.11.3
+  resolution: "bootstrap-icons@npm:1.11.3"
+  checksum: 10/7da4e8e1fb456dddb5b460020fbfd6d223cf65160250b6196d79748889e805ddf5f3cedb33178c3e4bac732652f33ab5f68e899c4a9fa2ade1a5899689aa5172
+  languageName: node
+  linkType: hard
+
 "brace-expansion@npm:^2.0.1":
   version: 2.0.1
   resolution: "brace-expansion@npm:2.0.1"
@@ -1375,6 +1382,7 @@ __metadata:
   dependencies:
     "@vitejs/plugin-vue": "npm:^3.0.1"
     axios: "npm:0.28.0"
+    bootstrap-icons: "npm:^1.11.3"
     vite: "npm:^3.0.4"
     vue: "npm:^3.2.37"
     vue-router: "npm:^4.1.3"

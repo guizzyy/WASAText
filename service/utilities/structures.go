@@ -15,8 +15,8 @@ type Message struct {
 	ID        uint64    `json:"id"`
 	Text      string    `json:"text"`
 	Photo     string    `json:"photo"`
-	Conv      uint64    `json:"conv_id"`
-	Sender    uint64    `json:"sender_id"`
+	Conv      uint64    `json:"conv"`
+	Sender    uint64    `json:"sender"`
 	IsForward bool      `json:"is_forwarded"`
 	Timestamp time.Time `json:"timestamp"`
 	Status    string    `json:"status"`
@@ -42,6 +42,16 @@ type Conversation struct {
 type LoginResponse struct {
 	Message    string `json:"message"`
 	UserLogged User   `json:"user"`
+}
+
+type PhotoResponse struct {
+	Message string `json:"message"`
+	Photo   string `json:"photo"`
+}
+
+type ConvResponse struct {
+	Messages []Message `json:"messages"`
+	Members  []User    `json:"members"`
 }
 
 var ErrUsernameString = errors.New("invalid string format for the username (length should be between 3 and 16)")

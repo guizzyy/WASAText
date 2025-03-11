@@ -13,7 +13,7 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 	var userLog utilities.User
 	if err := json.NewDecoder(r.Body).Decode(&userLog); err != nil {
 		context.Logger.WithError(err).Error("json login decode error")
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	pUser := &userLog
