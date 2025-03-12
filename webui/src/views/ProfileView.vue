@@ -94,6 +94,7 @@ export default {
           }
         });
         this.notification = response.data.message;
+        console.log("url photo: ", response.data.photo)
         let newUrl = response.data.photo;
         sessionStorage.setItem("photo", newUrl);
         this.photo = newUrl;

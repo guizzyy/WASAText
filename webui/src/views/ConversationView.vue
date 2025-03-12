@@ -1,8 +1,9 @@
 <script>
 import {RouterLink} from "vue-router";
+import ErrorMsg from "../components/ErrorMsg.vue";
 
 export default {
-  components: RouterLink,
+  components: {RouterLink, ErrorMsg},
   data: function() {
     return {
       error: null,
@@ -26,6 +27,15 @@ export default {
   },
 
   methods: {
+    scrollToBottom() {
+      this.$nextTick( () => {
+        const chatBox = document.querySelector(".messages-list");
+        if (chatBox) {
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      })
+    },
+
     async sendMessage(mess) {
       if (mess.length === 0) {
         this.error = "Can't send an empty message";
@@ -43,6 +53,7 @@ export default {
         this.messages.push(response.data);
         this.sentMessage = "";
         this.sentPhoto = "";
+        this.scrollToBottom();
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response;
@@ -76,11 +87,11 @@ export default {
             Authorization: sessionStorage.getItem("ID")
           }
         });
-        this.messages = response.data.messages;
+        this.messages = response.data.messages.reverse();
         this.membersConv = response.data.members;
       } catch (e) {
         if (e.response?.status === 400) {
-          this.error = e.response;
+          this.error = e.response.data;
         } else if (e.response?.status === 500) {
           this.error = e.response.data
         } else {
@@ -124,6 +135,12 @@ export default {
     </div>
   </header>
 
+  <div class="d-flex position-relative">
+    <div class="d-flex position-absolute top-0 end-0 mt-3" style="padding-right: 10px">
+      <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
+    </div>
+  </div>
+
   <div class="main-container">
     <div>
       <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
@@ -137,20 +154,36 @@ export default {
           <div v-else class="chat-box">
             <div class="messages-list">
               <div v-for="mess in messages" :key="mess.id" :class="{'my-mess': mess.sender === myID, 'receiver-mess': mess.sender !== myID}">
-                <div class="mess-bubble"> {{ mess.text }} </div>
+                <div class="mess-bubble">
+                  <div v-if="mess.text"> {{ mess.text }} </div>
+                  <div v-if="mess.photo">
+                    <img :src="mess.photo" alt="Message photo" class="mess-photo">
+                  </div>
+                  <div class="mess-info">
+                    <span> {{ mess.timestamp }} </span>
+                    <span class="status" v-if="mess.sender === myID">
+                      <template v-if="mess.status === 'Read'">
+                        <i class="check-mark read">✔✔</i>
+                      </template>
+                      <template v-if="mess.status === 'Received'">
+                        <i class="check-mark read">✔</i>
+                      </template>
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="chat-input-box">
-          <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input" @keyup.enter="sendMessage" maxlength="250">
-          <button @click="sendMessage" class="send-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+          <div class="chat-input-box">
+            <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input" @keyup.enter="sendMessage" maxlength="250">
+            <button @click="sendMessage" class="send-button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
         </div>
       </main>
     </div>
@@ -161,20 +194,19 @@ export default {
 
 .home-messages {
   display: flex;
-  margin-top: 20px;
-  border-radius: 8px;
+  margin-top: 10px;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .chat-input-box {
   height: 10%;
   position: absolute;
   bottom: 1em;
-  left: 19em;
   width: 80%;
   padding: 10px;
   display: flex;
-  align-items: center;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .message-input {
@@ -203,16 +235,21 @@ export default {
 }
 
 .chat-box{
-  height: fit-content;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 160px);
+  overflow: hidden;
 }
 
 .messages-list {
   display: flex;
-  flex-direction: column;
   justify-content: flex-start;
-  height: 100%;
+  height: auto;
+  flex-direction: column;
   overflow-y: auto;
   padding: 20px;
+  max-height: 98%;
 }
 
 .my-mess {
@@ -270,6 +307,33 @@ export default {
   border-top: 10px solid transparent;
   border-bottom: 10px solid transparent;
   transform: translateY(-50%);
+}
+
+.mess-photo {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 5px;
+}
+
+.mess-info {
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0.8;
+}
+
+.check-mark {
+  font-size: 0.5rem;
+  margin-left: 5px;
+}
+
+/* Optionally, color the check marks differently */
+.check-mark.received {
+  color: #ccc;
+}
+.check-mark.read {
+  color: #4caf50;
 }
 
 </style>
