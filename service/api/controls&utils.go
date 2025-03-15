@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 // Check the authorization token provided whether is correct, missed, unknown
@@ -136,7 +137,7 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 
 	// Create a file in the folder (unique name) and copy the image in it
 	uniqueFile := fmt.Sprintf("%s_%s", uuid.New().String(), filepath.Ext(handler.Filename))
-	filePath := filepath.Join("service/api/photos", uniqueFile)
+	filePath := filepath.Join("./uploads", uniqueFile)
 	fileLocal, err := os.Create(filePath)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during file creation")
@@ -158,4 +159,18 @@ func (rt *_router) DeletePhotoPath(oldPhoto string) error {
 		return err
 	}
 	return nil
+}
+
+func (rt *_router) ScheduleConvDeleting(convID uint64, context reqcontext.RequestContext, w http.ResponseWriter) {
+	// Wait 5 minutes before deleting the conversation created
+	time.Sleep(5 * time.Minute)
+
+	// Query the database in order to check if there are messages
+	if err := rt.db.ConvHasMessages(convID); err != nil {
+		context.Logger.WithError(err).Error("error during ConvHasMessages")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	context.Logger.Info("Deleted conversation done")
+	return
 }

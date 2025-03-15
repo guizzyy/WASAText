@@ -12,15 +12,18 @@ export default {
       username: sessionStorage.getItem("username"),
       photo: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
       message: sessionStorage.getItem("message"),
-      convs: [],
+      convs: JSON.parse(sessionStorage.getItem("convs")) || [],
       convID: null,
       newUser: "",
       searchResults: [],
       searchTimeout: null,
       newConv: {},
+      groupName: "",
 
       showLoading: false,
       showUserSearch: false,
+      showGroupName: false,
+      showPopUp: false,
     }
   },
 
@@ -38,8 +41,23 @@ export default {
       this.$router.push({path: "/"});
     },
 
+    togglePopUp() {
+      this.showPopUp = !this.showPopUp;
+    },
+
+    openGroupNameBar() {
+      this.showGroupName = true;
+      this.showPopUp = false;
+    },
+
+    closeGroupNameBar() {
+      this.groupName = "";
+      this.showGroupName = false;
+    },
+
     openSearchBar() {
       this.showUserSearch = true;
+      this.showPopUp = false;
     },
 
     closeSearchBar() {
@@ -88,6 +106,7 @@ export default {
             Authorization: sessionStorage.getItem("ID"),
           }
         });
+        sessionStorage.setItem("convs", JSON.stringify(response.data));
         this.convs = Array.isArray(response.data) ? response.data : [];
       } catch (e) {
         this.showLoading = false;
@@ -97,7 +116,6 @@ export default {
           this.error = "User Not Found";
         } else if (e.response?.status === 500) {
           this.error = "Server Error, please try again";
-          console.error("Error fetching the conversations")
         } else {
           this.error = e.toString();
         }
@@ -124,6 +142,7 @@ export default {
         )
         this.newConv = response.data;
         this.$router.push({path: `/conversations/${this.newConv.id}`});
+        this.convs.push(this.newConv);
         this.newConv = {};
       } catch (e) {
         if (e.response?.status === 400) {
@@ -143,30 +162,33 @@ export default {
       }, 2500)
     },
 
-    async getConversation() {
+    async createGroup() {
       this.error = null;
       this.showLoading = true;
-      try {
-        let response = await this.$axios.get(`conversations/${this.convID}`, {
+      if (this.groupName.length === 0) {
+        this.error = "Write a proper name for a new group";
+      }
+      else try {
+        let response = await this.$axios.post(`/group`, {name: this.groupName}, {
           headers: {
             Authorization: sessionStorage.getItem("ID")
           }
         });
+        this.newConv = response.data;
+        this.$router.push({path: `/conversations/${this.newConv.id}`})
+        this.convs.push(this.newConv);
+        this.newConv = {};
       } catch (e) {
         if (e.response?.status === 400) {
-          this.error = "Invalid username (it must be between 3 and 16 characters).";
+          this.error = e.response.data;
         } else if (e.response?.status === 500) {
-          this.error = "Server Error, please try again later.";
+          this.error = e.response.data
         } else {
-          this.error = "An unexpected error occurred.";
-          console.error(e); // Log for debugging
+          this.error = e.toString();
         }
       } finally {
-        this.showLoading = false
+        this.showLoading = false;
       }
-      setTimeout(() => {
-        this.error = null;
-      }, 2500)
     }
   },
 }
@@ -214,15 +236,29 @@ export default {
           <p v-if="this.convs.length === 0">No conversation started yet...</p>
           <div v-else class="chat-container">
             <div class="chat-list">
-              <router-link v-for="conv in convs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat">
-                <strong>{{ conv.name }}</strong> {{ conv.last_message.text }}
+              <router-link v-for="conv in this.convs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat d-flex align-items-start gap-3 p-2">
+                <div class="chat-photo h-auto">
+                  <img :src="conv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg' " alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
+                </div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between">
+                    <strong> {{ conv.name }} </strong>
+                    <small class="text-muted"> {{ conv.last_message.timestamp }} </small>
+                  </div>
+                  <p class="text-muted text-truncate mb-0"> {{ conv.last_message.text || "No messages yet..." }} </p>
+                </div>
               </router-link>
             </div>
           </div>
 
-          <div class="new-chat-button" @click="openSearchBar">
+          <div class="new-chat-button" @click="togglePopUp">
             <svg class="feather" width="24" height="24"><use href="/feather-sprite-v4.29.0.svg#message-circle"/></svg>
             <span style="font-size: 30px; position: absolute; justify-content: center; font-weight: bold; bottom: .25rem">+</span>
+          </div>
+
+          <div v-if="showPopUp" class="chat-popup">
+            <button @click="openSearchBar"> Private </button>
+            <button @click="openGroupNameBar"> Group </button>
           </div>
 
           <div v-if="showUserSearch" class="overlay">
@@ -234,6 +270,14 @@ export default {
                 </li>
               </ul>
               <button @click="closeSearchBar">Cancel</button>
+            </div>
+          </div>
+
+          <div v-if="showGroupName" class="overlay">
+            <div class="search-box position-relative">
+              <input v-model="groupName" placeholder="Insert a name for the group...">
+              <button @click="createGroup" class=""> Create group </button>
+              <button @click="closeGroupNameBar"> Cancel </button>
             </div>
           </div>
         </div>
@@ -250,7 +294,6 @@ export default {
 
 .home-container {
   text-align: center;
-  margin-top: 20px;
   padding: 20px;
   border-radius: 8px;
   height: 90%;
@@ -275,6 +318,33 @@ export default {
 
 .new-chat-button:hover {
   background-color: #0a53a8;
+}
+
+.chat-popup {
+  width: 10%;
+  position: fixed;
+  bottom: 90px;
+  right: 30px;
+  background: none;
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.chat-popup button {
+  background: #298dff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.chat-popup button:hover {
+  background: #0a53a8;
 }
 
 .overlay {
@@ -337,6 +407,7 @@ export default {
   justify-content: center;
   height: auto;
   margin: auto;
+  flex-direction: column;
 }
 
 .chat-list {
@@ -353,7 +424,6 @@ export default {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 10px;
   border: none;
   background-color: white;
   cursor: pointer;

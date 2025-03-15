@@ -11,10 +11,11 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 	//	Get info for the conversation in the homepage
 	query := `WITH lastMess AS (
 				SELECT 
-				    conv_id,
 				    id AS mess_id,
 				    text,
 				    photo,
+				    conv_id,
+				    sender_id,
 				    timestamp
 				FROM
 				    message
@@ -498,12 +499,37 @@ func (db *appdbimpl) GetPrivConvInfo(convID uint64, senderID uint64) (string, st
 func (db *appdbimpl) GetGroupConvInfo(convID uint64) (string, string, error) {
 	//	Get name and photo of the group to display in the homepage
 	var group utilities.Conversation
-	err := db.c.QueryRow(`SELECT name, photo FROM conversation WHERE id = ?`, convID).Scan(&group.Name, &group.Photo)
+	var groupP sql.NullString
+	err := db.c.QueryRow(`SELECT name, photo FROM conversation WHERE id = ?`, convID).Scan(&group.Name, &groupP)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", ErrConversationNotFound
 		}
 		return "", "", fmt.Errorf("error in getting group conversation info: %w", err)
 	}
+	group.Photo = groupP.String
 	return group.Name, group.Photo, nil
+}
+
+func (db *appdbimpl) ConvHasMessages(convID uint64) error {
+	// Check if the conv exists in the database
+	if isIn, err := db.IsConvInDatabase(convID); err != nil {
+		return fmt.Errorf("error checking if a conversation is in the database: %w", err)
+	} else if !isIn {
+		return fmt.Errorf("conversation is not in the database")
+	}
+
+	// Query the database to see if there is a message in the conversation
+	var count int
+	err := db.c.QueryRow(`SELECT COUNT(*) FROM message WHERE id = ?`, convID).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("error checking if a conversation has messages: %w", err)
+	}
+	if count == 0 {
+		if _, err = db.c.Exec(`DELETE FROM conversation WHERE id = ?`, convID); err != nil {
+			return fmt.Errorf("error in deleting a conversation: %w", err)
+		}
+		return nil
+	}
+	return nil
 }

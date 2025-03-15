@@ -10,12 +10,11 @@ export default {
       myID: parseInt(sessionStorage.getItem("ID")),
       myUsername: sessionStorage.getItem("username"),
       myPhoto: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
-      convID: this.$route.params.convID,
-      messages: [],
-      convs: [],
+      myConvs: sessionStorage.getItem("convs") || [],
+      currConvID: this.$route.params.convID,
+      currentConv: null,
       sentMessage: "",
       sentPhoto: "",
-      membersConv: [],
 
       showLoading: false,
 
@@ -23,7 +22,16 @@ export default {
   },
 
   mounted() {
-    this.getConversation()
+    this.getConversation(this.currConvID)
+  },
+
+  watch : {
+    currConvID: {
+      immediate: true,
+      handle(newConvID) {
+        this.getConversation(newConvID)
+      },
+    },
   },
 
   methods: {
@@ -44,13 +52,13 @@ export default {
         let formData = new FormData();
         formData.append('photo', this.sentPhoto);
         formData.append('text', this.sentMessage);
-        let response = await this.$axios.post(`conversations/${this.convID}/messages`, formData, {
+        let response = await this.$axios.post(`conversations/${this.currConvID}/messages`, formData, {
           headers: {
             Authorization: sessionStorage.getItem("ID"),
             "Content-type": "multipart/form-data"
           }
         });
-        this.messages.push(response.data);
+        this.currentConv.messages.push(response.data);
         this.sentMessage = "";
         this.sentPhoto = "";
         this.scrollToBottom();
@@ -70,25 +78,17 @@ export default {
       }, 2500)
      },
 
-    async forwardMessage() {
-
-    },
-
-    async deleteMessage() {
-
-    },
-
-    async getConversation() {
+    async getConversation(convID) {
       this.showLoading = true;
       this.error = null;
       try {
-        let response = await this.$axios.get(`/conversations/${this.convID}/open`, {
+        let response = await this.$axios.get(`/conversations/${convID}/open`, {
           headers: {
             Authorization: sessionStorage.getItem("ID")
           }
         });
-        this.messages = response.data.messages.reverse();
-        this.membersConv = response.data.members;
+        this.currentConv = { ...response.data, messages: Array.isArray(response.data.messages) ? [...response.data.messages].reverse() : [] };
+        sessionStorage.setItem("currentConv", JSON.stringify(this.currentConv));
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response.data;
@@ -103,7 +103,7 @@ export default {
       setTimeout(() => {
         this.error = null;
       }, 2500)
-    }
+    },
   }
 }
 </script>
@@ -147,13 +147,16 @@ export default {
       </nav>
 
       <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-        <div class="home-messages">
-          <h1 v-if="this.messages.length === 0">
+        <div class="receiver-bar w-auto h-auto">
+        </div>
+
+        <div v-if="currentConv" class="home-messages">
+          <h1 v-if="this.currentConv.messages.length === 0">
             No messages sent yet...
           </h1>
           <div v-else class="chat-box">
             <div class="messages-list">
-              <div v-for="mess in messages" :key="mess.id" :class="{'my-mess': mess.sender === myID, 'receiver-mess': mess.sender !== myID}">
+              <div v-for="mess in currentConv.messages" :key="mess.id" :class="{'my-mess': mess.sender === myID, 'receiver-mess': mess.sender !== myID}">
                 <div class="mess-bubble">
                   <div v-if="mess.text"> {{ mess.text }} </div>
                   <div v-if="mess.photo">

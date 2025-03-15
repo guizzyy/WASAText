@@ -98,6 +98,7 @@ export default {
         let newUrl = response.data.photo;
         sessionStorage.setItem("photo", newUrl);
         this.photo = newUrl;
+        console.log(this.photo)
         this.closePhotoBar();
       } catch (e) {
         if (e.response?.status === 400) {
@@ -137,7 +138,7 @@ export default {
           Logout
       </button>
       <div>
-        <img :src="this.photo" alt="Stored image" class="profile-pic-header">
+        <img :src="photo" alt="Stored image" class="profile-pic-header">
       </div>
     </div>
     <NotificationMsg v-if="notification" :message="notification"></NotificationMsg>
@@ -148,7 +149,7 @@ export default {
     <div class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3 rounded-3"
          style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
       <div>
-        <img :src="this.photo" alt="Profile pic" class="profile-pic">
+        <img :src="photo" alt="Profile pic" class="profile-pic">
       </div>
 
       <div style="flex-grow: 1; color: black">

@@ -127,14 +127,15 @@ func run() error {
 	}
 
 	// Create the directory to handle photo uploads
-	photosDir := "./service/api/photos"
+	photosDir := "./app/uploads"
 	if err := os.MkdirAll(photosDir, os.ModePerm); err != nil {
 		logger.WithError(err).Error("error creating photos directory")
 		return fmt.Errorf("creating photos directory: %w", err)
 	}
 
-	// Apply CORS policy
-	router = applyCORSHandler(router)
+	// Serve static files from /uploads
+	fs := http.FileServer(http.Dir(photosDir))
+	http.Handle("/uploads/", http.StripPrefix("/uploads/", fs))
 
 	// Create the API server
 	apiserver := http.Server{

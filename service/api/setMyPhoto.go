@@ -61,7 +61,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 
 	// Insert/Update the photo path in the database
 	user.ID = loggedID
-	user.Photo = "http://localhost:3000/" + filePath
+	user.Photo = filePath
 	if err = rt.db.SetPhoto(user); err != nil {
 		context.Logger.WithError(err).Error("Error during setPhoto db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -71,7 +71,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 	// Send the client a notification for the success of the operation
 	response := utilities.PhotoResponse{
 		Message: "Profile photo updated successfully",
-		Photo:   filePath,
+		Photo:   "http://localhost:3000/" + filePath,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
