@@ -16,7 +16,7 @@ type Message struct {
 	Text      string    `json:"text"`
 	Photo     string    `json:"photo"`
 	Conv      uint64    `json:"conv"`
-	Sender    uint64    `json:"sender"`
+	Sender    User      `json:"sender"`
 	IsForward bool      `json:"is_forwarded"`
 	Timestamp time.Time `json:"timestamp"`
 	Status    string    `json:"status"`
@@ -50,6 +50,9 @@ type PhotoResponse struct {
 }
 
 type ConvResponse struct {
+	Type     string    `json:"type"`
+	Name     string    `json:"name"`
+	Photo    string    `json:"photo"`
 	Messages []Message `json:"messages"`
 	Members  []User    `json:"members"`
 }

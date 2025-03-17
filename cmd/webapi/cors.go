@@ -11,12 +11,12 @@ import (
 func applyCORSHandler(h http.Handler) http.Handler {
 	return handlers.CORS(
 		handlers.AllowedHeaders([]string{
-			"Content-Type",
-			"Authorization",
 			"Access-Control-Allow-Origin",
+			"Authorization",
+			"Content-Type",
 		}),
 		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS", "DELETE", "PUT"}),
-		// Do not modify the CORS origin and max age, they are used in the evaluation.
+		// DO not modify the CORS origin an max age, they are used in the evaluation.
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.MaxAge(1),
 	)(h)

@@ -61,10 +61,11 @@ type AppDatabase interface {
 	GetConversation(uint64, uint64) ([]utilities.Message, error)
 	GetReceivers(uint64, uint64) ([]uint64, error)
 	GetMembers(uint64, uint64) ([]utilities.User, error)
-	GetConvPhoto(uint64) (string, error)
+	GetGroupPhoto(uint64) (string, error)
 	GetPrivConvInfo(uint64, uint64) (string, string, error)
 	GetGroupConvInfo(uint64) (string, string, error)
 	ConvHasMessages(uint64) error
+	GetConvByID(uint64, uint64) (utilities.Conversation, error)
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error

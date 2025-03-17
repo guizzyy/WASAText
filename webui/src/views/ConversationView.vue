@@ -10,7 +10,7 @@ export default {
       myID: parseInt(sessionStorage.getItem("ID")),
       myUsername: sessionStorage.getItem("username"),
       myPhoto: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
-      myConvs: sessionStorage.getItem("convs") || [],
+      myConvs: JSON.parse(sessionStorage.getItem("convs")) || [],
       currConvID: this.$route.params.convID,
       currentConv: null,
       sentMessage: "",
@@ -26,15 +26,21 @@ export default {
   },
 
   watch : {
-    currConvID: {
+    "$route": {
       immediate: true,
-      handle(newConvID) {
-        this.getConversation(newConvID)
+      handler(to) {
+        this.currConvID = to.params.convID
+        this.getConversation(this.currConvID)
       },
     },
   },
 
   methods: {
+    logout() {
+      sessionStorage.clear();
+      this.$router.push({path: "/"});
+    },
+
     scrollToBottom() {
       this.$nextTick( () => {
         const chatBox = document.querySelector(".messages-list");
@@ -109,72 +115,71 @@ export default {
 </script>
 
 <template>
-
-  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
-
-    <div class="set-buttons d-flex align-items-center me-3">
-      <button class="icon-btn" aria-label="Home">
-        <router-link to="/conversations" class="icon-btn">
-          Home
-        </router-link>
-      </button>
-      <button class="icon-btn" aria-label="Profile">
-        <router-link :to="'/users/' + this.myID" class="icon-btn">
-          Profile
-        </router-link>
-      </button>
-      <button class="icon-btn" aria-label="Logout">
-        <router-link to="/" class="icon-btn">
-          Logout
-        </router-link>
-      </button>
-      <div>
-        <img :src="this.myPhoto" alt="Stored image" class="profile-pic-header">
-      </div>
-    </div>
-  </header>
-
-  <div class="d-flex position-relative">
-    <div class="d-flex position-absolute top-0 end-0 mt-3" style="padding-right: 10px">
-      <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
-    </div>
-  </div>
-
-  <div class="main-container">
-    <div>
-      <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-      </nav>
-
-      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-        <div class="receiver-bar w-auto h-auto">
+  <div>
+    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
+      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
+      <div class="set-buttons d-flex align-items-center me-3 ms-auto gap-3">
+        <button class="icon-btn" aria-label="Home">
+          <router-link to="/conversations" class="icon-btn">Home</router-link>
+        </button>
+        <button class="icon-btn" aria-label="Profile">
+          <router-link :to="'/users/' + myID" class="icon-btn">Profile</router-link>
+        </button>
+        <button class="icon-btn" aria-label="Logout" @click="logout">Logout</button>
+        <div>
+          <img :src="myPhoto" alt="Stored image" class="profile-pic-header">
         </div>
+      </div>
+    </header>
 
-        <div v-if="currentConv" class="home-messages">
-          <h1 v-if="this.currentConv.messages.length === 0">
-            No messages sent yet...
-          </h1>
-          <div v-else class="chat-box">
-            <div class="messages-list">
-              <div v-for="mess in currentConv.messages" :key="mess.id" :class="{'my-mess': mess.sender === myID, 'receiver-mess': mess.sender !== myID}">
-                <div class="mess-bubble">
-                  <div v-if="mess.text"> {{ mess.text }} </div>
-                  <div v-if="mess.photo">
-                    <img :src="mess.photo" alt="Message photo" class="mess-photo">
+    <div class="container-fluid">
+      <div class="row">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+          <div v-if="!myConvs || myConvs.length === 0" class="h-100 mt-3 d-flex justify-content-center align-items-center text-center">
+            <p class="text-black">No conversation started yet...</p>
+          </div>
+          <div v-else class="chat-list h-100 mt-2 d-flex flex-column">
+            <router-link v-for="conv in myConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2">
+              <img :src="conv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
+              <span class="ms-3">{{ conv.name }}</span>
+            </router-link>
+          </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 position-relative">
+          <div v-if="currentConv" class="receiver-bar d-flex align-items-center px-3">
+            <img :src="currentConv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv Photo" class="rounded-circle me-3" width="50" height="50">
+            <strong class="text-white">{{ currentConv.name }}</strong>
+          </div>
+
+          <div class="home-messages">
+            <h1 v-if="!currentConv || currentConv.messages.length === 0">No messages sent yet...</h1>
+            <div v-else class="chat-box">
+                <div class="messages-list">
+                  <div v-if="currentConv.type === 'private'" v-for="mess in currentConv.messages" :key="mess.id" :class="{'my-mess': mess.sender === myID, 'receiver-mess': mess.sender !== myID}">
+                    <div class="mess-bubble">
+                      <div v-if="mess.text">{{ mess.text }}</div>
+                      <div v-if="mess.photo">
+                        <img :src="mess.photo" alt="Message photo" class="mess-photo">
+                      </div>
+                      <div class="mess-info">
+                        <span>{{ mess.timestamp }}</span>
+                        <span class="status" v-if="mess.sender === myID">
+                          <template v-if="mess.status === 'Read'">
+                            <i class="check-mark read">✔✔</i>
+                          </template>
+                          <template v-else-if="mess.status === 'Received'">
+                            <i class="check-mark received">✔</i>
+                          </template>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div class="mess-info">
-                    <span> {{ mess.timestamp }} </span>
-                    <span class="status" v-if="mess.sender === myID">
-                      <template v-if="mess.status === 'Read'">
-                        <i class="check-mark read">✔✔</i>
-                      </template>
-                      <template v-if="mess.status === 'Received'">
-                        <i class="check-mark read">✔</i>
-                      </template>
-                    </span>
+
+                  <div>
+                    
                   </div>
                 </div>
-              </div>
             </div>
           </div>
 
@@ -187,26 +192,30 @@ export default {
               </svg>
             </button>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   </div>
 </template>
 
-<style>
+
+<style scoped>
 
 .home-messages {
   display: flex;
   margin-top: 10px;
   flex-direction: column;
   overflow: hidden;
+  padding-top: 50px;
 }
 
 .chat-input-box {
   height: 10%;
-  position: absolute;
+  justify-content: flex-end;
+  position: fixed;
   bottom: 1em;
-  width: 80%;
+  right: 0;
+  width: 83%;
   padding: 10px;
   display: flex;
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
@@ -331,12 +340,40 @@ export default {
   margin-left: 5px;
 }
 
-/* Optionally, color the check marks differently */
 .check-mark.received {
   color: #ccc;
 }
 .check-mark.read {
   color: #4caf50;
+}
+
+.chat-item {
+  align-items: center;
+  padding: 2vh;
+  display: block;
+  cursor: pointer;
+  text-decoration: none;
+  color: black;
+  border-bottom: 1px solid #ddd;
+  background-color: white;
+}
+
+.chat-item:hover {
+  background-color: lightgray;
+}
+
+.receiver-bar {
+  width: 100%;
+  height: 60px;
+  background-color: #343a40;
+  color: white;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 10px;
 }
 
 </style>

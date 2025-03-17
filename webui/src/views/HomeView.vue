@@ -141,8 +141,8 @@ export default {
             }
         )
         this.newConv = response.data;
-        this.$router.push({path: `/conversations/${this.newConv.id}`});
         this.convs.push(this.newConv);
+        this.$router.push({path: `/conversations/${this.newConv.id}`});
         this.newConv = {};
       } catch (e) {
         if (e.response?.status === 400) {
@@ -414,7 +414,6 @@ export default {
   width: auto;
   height: 80vh;
   overflow-y: scroll;
-  border: 1px solid black;
   border-radius: 10px;
   background-color: #f9f9f9;
 }

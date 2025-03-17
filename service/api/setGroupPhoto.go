@@ -33,7 +33,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Delete the previous group photo if there was an existing one
-	currPhoto, err := rt.db.GetConvPhoto(conv.ID)
+	currPhoto, err := rt.db.GetGroupPhoto(conv.ID)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during get current group photo db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

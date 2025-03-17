@@ -126,6 +126,9 @@ func run() error {
 		return fmt.Errorf("registering web UI handler: %w", err)
 	}
 
+	// Apply CORS policy
+	router = applyCORSHandler(router)
+
 	// Create the directory to handle photo uploads
 	photosDir := "./app/uploads"
 	if err := os.MkdirAll(photosDir, os.ModePerm); err != nil {

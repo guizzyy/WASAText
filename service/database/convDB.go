@@ -178,7 +178,7 @@ func (db *appdbimpl) CreatePrivConv(u utilities.User, receiver utilities.User) (
 	return conv, nil
 }
 
-func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uint64) error {
+func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, userId uint64) error {
 	//	Insert and retrieve the new conversation info in the database
 	err := db.c.QueryRow(`INSERT INTO conversation(name, type) VALUES (?, ?) RETURNING id`, grConv.Name, grConv.Type).Scan(&grConv.ID)
 	if err != nil {
@@ -186,7 +186,7 @@ func (db *appdbimpl) CreateGroupConv(grConv *utilities.Conversation, user_id uin
 	}
 
 	//	Insert the new membership of the group creator and the new group created
-	_, err = db.c.Exec(`INSERT INTO membership(conv_id, user_id) VALUES (?, ?)`, grConv.ID, user_id)
+	_, err = db.c.Exec(`INSERT INTO membership(conv_id, user_id) VALUES (?, ?)`, grConv.ID, userId)
 	if err != nil {
 		return fmt.Errorf("error in adding memberships while creating the group: %w", err)
 	}
@@ -381,7 +381,7 @@ func (db *appdbimpl) GetMembers(convID uint64, uID uint64) ([]utilities.User, er
 	return members, nil
 }
 
-func (db *appdbimpl) GetConvPhoto(convID uint64) (string, error) {
+func (db *appdbimpl) GetGroupPhoto(convID uint64) (string, error) {
 	//	Check if the id refers to a group conversation
 	if isGroup, err := db.IsGroupConv(convID); err != nil {
 		return "", fmt.Errorf("error in checking if conversation is a group: %w", err)
@@ -532,4 +532,34 @@ func (db *appdbimpl) ConvHasMessages(convID uint64) error {
 		return nil
 	}
 	return nil
+}
+
+func (db *appdbimpl) GetConvByID(convID uint64, uID uint64) (utilities.Conversation, error) {
+	// Check if the conversation exists in the database
+	if isIn, err := db.IsConvInDatabase(convID); err != nil {
+		return utilities.Conversation{}, fmt.Errorf("error checking if a conversation is in the database: %w", err)
+	} else if !isIn {
+		return utilities.Conversation{}, fmt.Errorf("conversation is not in the database")
+	}
+
+	var conv utilities.Conversation
+	err := db.c.QueryRow(`SELECT id, type FROM conversation WHERE id = ?`, convID).Scan(&conv.ID, &conv.Type)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return utilities.Conversation{}, ErrConversationNotFound
+		}
+		return utilities.Conversation{}, fmt.Errorf("error in getting conversation info: %w", err)
+	}
+
+	switch conv.Type {
+	case "private":
+		if conv.Name, conv.Photo, err = db.GetPrivConvInfo(conv.ID, uID); err != nil {
+			return utilities.Conversation{}, fmt.Errorf("error in getting name, photo of private conversation for the homepage: %w", err)
+		}
+	case "group":
+		if conv.Name, conv.Photo, err = db.GetGroupConvInfo(conv.ID); err != nil {
+			return utilities.Conversation{}, fmt.Errorf("error in getting name, photo of group conversation for the homepage: %w", err)
+		}
+	}
+	return conv, nil
 }

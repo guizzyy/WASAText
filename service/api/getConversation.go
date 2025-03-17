@@ -31,6 +31,13 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
+	conv, err := rt.db.GetConvByID(convID, id)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during getConvByID db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Query the database to retrieve all messages for the conversation
 	messages, err := rt.db.GetConversation(convID, id)
 	if err != nil {
@@ -47,6 +54,9 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 	}
 
 	response := utilities.ConvResponse{
+		Type:     conv.Type,
+		Name:     conv.Name,
+		Photo:    conv.Photo,
 		Messages: messages,
 		Members:  members,
 	}
