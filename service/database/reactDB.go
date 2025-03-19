@@ -16,7 +16,7 @@ func (db *appdbimpl) AddReaction(react utilities.Reaction, messId uint64) error 
 	}
 
 	//	Check if already exists a reaction of the user in a message
-	if isIn, err := db.IsReactionInDatabase(messId, react.User); err != nil {
+	if isIn, err := db.IsReactionInDatabase(messId, react.User.ID); err != nil {
 		return fmt.Errorf("error in checking if the reaction exists: %w", err)
 	} else if !isIn {
 		//	if it doesn't exist, insert a new one
@@ -57,7 +57,18 @@ func (db *appdbimpl) RemoveReaction(messId uint64, senderId uint64) error {
 func (db *appdbimpl) GetReactions(messId uint64) ([]utilities.Reaction, error) {
 	//	Get the reaction emojis and senders from the database
 	var reactions []utilities.Reaction
-	rows, err := db.c.Query(`SELECT reaction, sender_id FROM reactions WHERE mess_id = ?`, messId)
+	query := `SELECT 
+					r.reaction,
+					u.name,
+					u.photo
+				FROM 
+				    reactions AS r, 
+				    user AS u
+				WHERE
+				    r.mess_id = ? AND
+				    r.sender_id = u.id
+    `
+	rows, err := db.c.Query(query, messId)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting reactions of the message: %w", err)
 	}
@@ -65,9 +76,11 @@ func (db *appdbimpl) GetReactions(messId uint64) ([]utilities.Reaction, error) {
 	//	Iterate the rows to save information in the array
 	for rows.Next() {
 		var reaction utilities.Reaction
-		if err = rows.Scan(&reaction.Emoji, &reaction.User); err != nil {
+		var sender utilities.User
+		if err = rows.Scan(&reaction.Emoji, &sender.Username, &sender.Photo); err != nil {
 			return nil, fmt.Errorf("error in scanning reactions of the message: %w", err)
 		}
+		reaction.User = sender
 		reactions = append(reactions, reaction)
 	}
 

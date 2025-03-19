@@ -24,7 +24,7 @@ type Message struct {
 
 type Reaction struct {
 	Emoji string `json:"emoji"`
-	User  uint64 `json:"user"`
+	User  User   `json:"user"`
 }
 
 type Notification struct {
@@ -50,6 +50,7 @@ type PhotoResponse struct {
 }
 
 type ConvResponse struct {
+	ID       uint64    `json:"id"`
 	Type     string    `json:"type"`
 	Name     string    `json:"name"`
 	Photo    string    `json:"photo"`

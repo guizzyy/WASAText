@@ -27,11 +27,14 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
     				c.type,
     				m.mess_id,
     				m.text, 
-    				m.photo, 
-    				m.timestamp as last_message_time
+    				m.photo,
+    				m.timestamp as last_message_time,
+					u.id,
+					u.name
 				FROM 
-				    conversation AS c, lastMess AS m, membership AS ms 
+				    conversation AS c, lastMess AS m, membership AS ms, user AS u 
 				WHERE 
+				    m.mess_id = u.id AND
 				    c.id = m.conv_id AND 
 				    c.id = ms.conv_id AND 
 				    ms.user_id = ? 
@@ -46,8 +49,9 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 	var convs []utilities.Conversation
 	for rows.Next() {
 		var mess utilities.Message
+		var sender utilities.User
 		var conv utilities.Conversation
-		if err = rows.Scan(&conv.ID, &conv.Type, &mess.ID, &mess.Text, &mess.Photo, &mess.Timestamp); err != nil {
+		if err = rows.Scan(&conv.ID, &conv.Type, &mess.ID, &mess.Text, &mess.Photo, &mess.Timestamp, &sender.ID, &sender.Username); err != nil {
 			return nil, fmt.Errorf("error in scanning conversations for the homepage: %w", err)
 		}
 
@@ -61,9 +65,11 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 				return nil, fmt.Errorf("error in getting name, photo of group conversation for the homepage: %w", err)
 			}
 		}
-		if mess.Sender != uID {
+
+		if sender.ID != uID {
 			mess.Status = "Received"
 		}
+		mess.Sender = sender
 		conv.LastMessage = mess
 		convs = append(convs, conv)
 	}
@@ -101,13 +107,16 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Mes
     				m.text,
     				m.photo,
     				m.conv_id,
-    				m.sender_id,
     				m.is_forwarded,
     				m.timestamp,
+    				u.id,
+    				u.name,
+    				u.photo,
     				s.info
 				FROM
-				    message AS m, status AS s
+				    message AS m, status AS s, user AS u 
 				WHERE
+				    m.sender_id = u.id AND
 				    m.id = s.mess_id AND
 				    m.conv_id = ?
 				ORDER BY m.timestamp DESC`
@@ -120,12 +129,16 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64) ([]utilities.Mes
 	var messages []utilities.Message
 	for rows.Next() {
 		var m utilities.Message
-		if err = rows.Scan(&m.ID, &m.Text, &m.Photo, &m.Conv, &m.Sender, &m.IsForward, &m.Timestamp, &m.Status); err != nil {
+		var sender utilities.User
+		var senderPhoto sql.NullString
+		if err = rows.Scan(&m.ID, &m.Text, &m.Photo, &m.Conv, &m.IsForward, &m.Timestamp, &sender.ID, &sender.Username, &senderPhoto, &m.Status); err != nil {
 			return nil, fmt.Errorf("error in scanning messages in a conversation: %w", err)
 		}
-		if m.Sender != uID {
+		sender.Photo = senderPhoto.String
+		if sender.ID != uID {
 			m.Status = "Read"
 		}
+		m.Sender = sender
 		messages = append(messages, m)
 	}
 
@@ -521,7 +534,7 @@ func (db *appdbimpl) ConvHasMessages(convID uint64) error {
 
 	// Query the database to see if there is a message in the conversation
 	var count int
-	err := db.c.QueryRow(`SELECT COUNT(*) FROM message WHERE id = ?`, convID).Scan(&count)
+	err := db.c.QueryRow(`SELECT COUNT(*) FROM message WHERE conv_id = ?`, convID).Scan(&count)
 	if err != nil {
 		return fmt.Errorf("error checking if a conversation has messages: %w", err)
 	}

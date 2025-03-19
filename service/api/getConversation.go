@@ -54,6 +54,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 	}
 
 	response := utilities.ConvResponse{
+		ID:       conv.ID,
 		Type:     conv.Type,
 		Name:     conv.Name,
 		Photo:    conv.Photo,

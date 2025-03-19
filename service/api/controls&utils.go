@@ -163,7 +163,7 @@ func (rt *_router) DeletePhotoPath(oldPhoto string) error {
 
 func (rt *_router) ScheduleConvDeleting(convID uint64, context reqcontext.RequestContext, w http.ResponseWriter) {
 	// Wait 5 minutes before deleting the conversation created
-	time.Sleep(5 * time.Minute)
+	time.Sleep(3 * time.Minute)
 
 	// Query the database in order to check if there are messages
 	if err := rt.db.ConvHasMessages(convID); err != nil {

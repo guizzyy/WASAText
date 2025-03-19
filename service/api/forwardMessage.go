@@ -93,7 +93,12 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params
 	}
 
 	// Add the forwarded message as a new message in the database
-	msg.Sender = id
+	msg.Sender, err = rt.db.GetUserByID(id)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during GetUserByID db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	msg.Conv = newConv.ID
 	msg.IsForward = true
 	pMess := &msg

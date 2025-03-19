@@ -36,7 +36,7 @@ func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
 	}
 
 	//	Check if the user who is trying to send a message is in the conversation
-	if isIn, err := db.IsUserInConv(mess.Conv, mess.Sender); err != nil {
+	if isIn, err := db.IsUserInConv(mess.Conv, mess.Sender.ID); err != nil {
 		return fmt.Errorf("error in checking if the user is in conversation: %w", err)
 	} else if !isIn {
 		return ErrUserNotInConversation
@@ -44,19 +44,19 @@ func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
 
 	//	Insert the new message in the database (also with the case of forward message)
 	if mess.IsForward {
-		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id, is_forwarded) VALUES (?, ?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender, mess.IsForward).Scan(&mess.ID, &mess.Timestamp)
+		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id, is_forwarded) VALUES (?, ?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender.ID, mess.IsForward).Scan(&mess.ID, &mess.Timestamp)
 		if err != nil {
 			return fmt.Errorf("error adding forwarded message to database: %w", err)
 		}
 	} else {
-		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id) VALUES (?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender).Scan(&mess.ID, &mess.Timestamp)
+		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id) VALUES (?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender.ID).Scan(&mess.ID, &mess.Timestamp)
 		if err != nil {
 			return fmt.Errorf("error adding message to database: %w", err)
 		}
 	}
 
 	//	Get the receivers ids for insert into status message
-	receivers, err := db.GetReceivers(mess.Conv, mess.Sender)
+	receivers, err := db.GetReceivers(mess.Conv, mess.Sender.ID)
 	if err != nil {
 		return fmt.Errorf("error getting receivers: %w", err)
 	}

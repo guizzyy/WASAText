@@ -1,13 +1,14 @@
 <script>
 import {RouterLink} from "vue-router";
 import NotificationMsg from "../components/NotificationMsg.vue";
+import ErrorMsg from "../components/ErrorMsg.vue";
 
 export default {
-  components: {RouterLink, NotificationMsg},
+  components: {ErrorMsg, RouterLink, NotificationMsg},
   data: function() {
     return {
       error: null,
-      ID: sessionStorage.getItem("ID"),
+      ID: parseInt(sessionStorage.getItem("ID")),
       username: sessionStorage.getItem("username"),
       photo: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
       newUsername: "",
@@ -120,30 +121,23 @@ export default {
 
 <template>
 
-  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+  <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
     <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
-
-    <div class="set-buttons d-flex align-items-center me-3">
+    <div class="set-buttons d-flex align-items-center me-3 ms-auto gap-3">
       <button class="icon-btn" aria-label="Home">
-        <router-link to="/conversations" class="icon-btn">
-          Home
-        </router-link>
+        <router-link to="/conversations" class="icon-btn">Home</router-link>
       </button>
       <button class="icon-btn" aria-label="Profile">
-        <router-link :to="'/users/' + this.ID" class="icon-btn">
-          Profile
-        </router-link>
+        <router-link :to="'/users/' + ID" class="icon-btn">Profile</router-link>
       </button>
-      <button class="icon-btn" aria-label="Logout" @click="logout">
-          Logout
-      </button>
+      <button class="icon-btn" aria-label="Logout" @click="logout">Logout</button>
       <div>
         <img :src="photo" alt="Stored image" class="profile-pic-header">
       </div>
     </div>
-    <NotificationMsg v-if="notification" :message="notification"></NotificationMsg>
   </header>
-
+  <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
+  <NotificationMsg v-if="report" :message="report"></NotificationMsg>
 
   <div class="w-75 h-auto align-items-center">
     <div class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3 rounded-3"

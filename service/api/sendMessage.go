@@ -24,7 +24,12 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 	}
 
 	var mess utilities.Message
-	mess.Sender = id
+	mess.Sender, err = rt.db.GetUserByID(id)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during GetUserByID db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	pMess := &mess
 
 	// Get the photo file path (if an image has been sent)

@@ -31,7 +31,7 @@ export default {
     this.getConversations();
     setTimeout(() => {
       sessionStorage.removeItem("message");
-      this.message = "";  // Clear the message in the component
+      this.message = "";
     }, 3000);
   },
 
@@ -106,8 +106,8 @@ export default {
             Authorization: sessionStorage.getItem("ID"),
           }
         });
-        sessionStorage.setItem("convs", JSON.stringify(response.data));
         this.convs = Array.isArray(response.data) ? response.data : [];
+        sessionStorage.setItem("convs", JSON.stringify(response.data));
       } catch (e) {
         this.showLoading = false;
         if (e.response?.status === 400) {
@@ -142,6 +142,7 @@ export default {
         )
         this.newConv = response.data;
         this.convs.push(this.newConv);
+        sessionStorage.setItem("convs", JSON.stringify(this.convs));
         this.$router.push({path: `/conversations/${this.newConv.id}`});
         this.newConv = {};
       } catch (e) {
@@ -175,8 +176,9 @@ export default {
           }
         });
         this.newConv = response.data;
-        this.$router.push({path: `/conversations/${this.newConv.id}`})
         this.convs.push(this.newConv);
+        sessionStorage.setItem("convs", JSON.stringify(this.convs));
+        this.$router.push({path: `/conversations/${this.newConv.id}`})
         this.newConv = {};
       } catch (e) {
         if (e.response?.status === 400) {
@@ -189,6 +191,9 @@ export default {
       } finally {
         this.showLoading = false;
       }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
     }
   },
 }
@@ -227,7 +232,6 @@ export default {
             <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
             <NotificationMsg v-if="message" :message="message"></NotificationMsg>
           </div>
-
         </div>
 
         <div class="home-container">
@@ -243,7 +247,7 @@ export default {
                 <div class="flex-grow-1">
                   <div class="d-flex justify-content-between">
                     <strong> {{ conv.name }} </strong>
-                    <small class="text-muted"> {{ conv.last_message.timestamp }} </small>
+                    <small class="text-muted"> {{ new Date(conv.last_message.timestamp).toLocaleDateString("it-IT", {hour: "numeric", minute: "numeric"}) }} </small>
                   </div>
                   <p class="text-muted text-truncate mb-0"> {{ conv.last_message.text || "No messages yet..." }} </p>
                 </div>

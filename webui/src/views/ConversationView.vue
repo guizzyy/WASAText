@@ -1,9 +1,10 @@
 <script>
 import {RouterLink} from "vue-router";
 import ErrorMsg from "../components/ErrorMsg.vue";
+import NotificationMsg from "../components/NotificationMsg.vue";
 
 export default {
-  components: {RouterLink, ErrorMsg},
+  components: {NotificationMsg, RouterLink, ErrorMsg},
   data: function() {
     return {
       error: null,
@@ -15,9 +16,11 @@ export default {
       currentConv: null,
       sentMessage: "",
       sentPhoto: "",
+      reactionOf: null,
+      emojis: [],
+      destinationConv: null,
 
       showLoading: false,
-
     }
   },
 
@@ -48,6 +51,59 @@ export default {
           chatBox.scrollTop = chatBox.scrollHeight;
         }
       })
+    },
+
+    toggleReactions(messID) {
+      this.reactionOf = this.reactionOf === messID ? null: messID;
+    },
+
+    async commentMessage() {
+
+    },
+
+    async forwardMessage(messID) {
+      try {
+        this.error = null;
+        let response = this.$axios.post(`/conversations/${this.currConvID}/messages/${messID}`,
+            {id: this.destinationConv},
+            {headers: {Authorization: sessionStorage.getItem("ID")}}
+        );
+        this.$router.push({path: `/conversations/${this.destinationConv}/open`});
+        // to continue 
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response;
+        } else if (e.response?.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
+    },
+
+    async deleteMessage(messID) {
+      try {
+        this.error = null;
+        await this.$axios.delete(`/conversations/${this.currConvID}/messages/${messID}`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        })
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response;
+        } else if (e.response?.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
     },
 
     async sendMessage(mess) {
@@ -134,6 +190,12 @@ export default {
 
     <div class="container-fluid">
       <div class="row">
+        <div class="d-flex position-relative">
+          <div class="d-flex position-absolute top-0 end-0 mt-3">
+            <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
+          </div>
+        </div>
+
         <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
           <div v-if="!myConvs || myConvs.length === 0" class="h-100 mt-3 d-flex justify-content-center align-items-center text-center">
             <p class="text-black">No conversation started yet...</p>
@@ -149,37 +211,50 @@ export default {
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 position-relative">
           <div v-if="currentConv" class="receiver-bar d-flex align-items-center px-3">
             <img :src="currentConv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv Photo" class="rounded-circle me-3" width="50" height="50">
-            <strong class="text-white">{{ currentConv.name }}</strong>
+            <router-link v-if="currentConv.type === 'group'" :to="'/conversations/' + currConvID + '/manage'" class="text-white text-decoration-none ">
+              <strong> {{ currentConv.name }} </strong>
+            </router-link>
+            <strong v-else class="text-white">{{ currentConv.name }}</strong>
           </div>
 
           <div class="home-messages">
             <h1 v-if="!currentConv || currentConv.messages.length === 0">No messages sent yet...</h1>
+
             <div v-else class="chat-box">
-                <div class="messages-list">
-                  <div v-if="currentConv.type === 'private'" v-for="mess in currentConv.messages" :key="mess.id" :class="{'my-mess': mess.sender === myID, 'receiver-mess': mess.sender !== myID}">
-                    <div class="mess-bubble">
-                      <div v-if="mess.text">{{ mess.text }}</div>
-                      <div v-if="mess.photo">
-                        <img :src="mess.photo" alt="Message photo" class="mess-photo">
-                      </div>
-                      <div class="mess-info">
-                        <span>{{ mess.timestamp }}</span>
-                        <span class="status" v-if="mess.sender === myID">
-                          <template v-if="mess.status === 'Read'">
-                            <i class="check-mark read">✔✔</i>
-                          </template>
-                          <template v-else-if="mess.status === 'Received'">
-                            <i class="check-mark received">✔</i>
-                          </template>
-                        </span>
+              <div class="messages-list">
+
+                <div v-for="mess in currentConv.messages" :key="mess.id" :class="{'my-mess': mess.sender.id === myID, 'receiver-mess': mess.sender.id !== myID}" class="mess-wrapper">
+                  <div class="mess-bubble">
+                    <div v-if="mess.text">{{ mess.text }}</div>
+                    <div v-if="mess.photo">
+                      <img :src="mess.photo" alt="Message photo" class="mess-photo">
+                    </div>
+
+                    <div class="mess-info">
+                      <span>{{ new Date(mess.timestamp).toLocaleDateString("it-IT", {hour: "numeric", minute: "numeric"}) }}</span>
+
+                      <span class="status" v-if="mess.sender === myID">
+                        <template v-if="mess.status === 'Read'">
+                          <i class="check-mark read">✔✔</i>
+                        </template>
+                        <template v-else-if="mess.status === 'Received'">
+                          <i class="check-mark received">✔</i>
+                        </template>
+                      </span>
+                    </div>
+
+                    <div class="mess-actions" :class="{'my-actions': mess.sender.id === myID, 'receiver-actions': mess.sender.id !== myID}">
+                      <i class="action-icon bi bi-forward" @click="forwardMessage"></i>
+                      <i v-if="mess.sender.id === myID" class="action-icon fa-solid fa-delete-left" @click="deleteMessage"></i>
+                      <i class="action-icon fa-brands fa-react" @click="toggleReactions"></i>
+                      <div v-if="reactionOf === mess.id" class="emoji-list">
+                        <span v-for="emoji in emojis" :key="emoji" @click="commentMessage">{{ emoji }}</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    
                   </div>
                 </div>
+              </div>
             </div>
           </div>
 
@@ -199,7 +274,7 @@ export default {
 </template>
 
 
-<style scoped>
+<style>
 
 .home-messages {
   display: flex;
@@ -207,43 +282,6 @@ export default {
   flex-direction: column;
   overflow: hidden;
   padding-top: 50px;
-}
-
-.chat-input-box {
-  height: 10%;
-  justify-content: flex-end;
-  position: fixed;
-  bottom: 1em;
-  right: 0;
-  width: 83%;
-  padding: 10px;
-  display: flex;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.message-input {
-  height: 100%;
-  flex-grow: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  outline: none;
-}
-
-.send-button {
-  height: 100%;
-  margin-left: 10px;
-  padding: 10px 15px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.send-button:hover {
-  background-color: #0056b3;
 }
 
 .chat-box{
@@ -262,6 +300,11 @@ export default {
   overflow-y: auto;
   padding: 20px;
   max-height: 98%;
+}
+
+.mess-wrapper {
+  position: relative;
+  margin-bottom: 10px;
 }
 
 .my-mess {
@@ -321,6 +364,52 @@ export default {
   transform: translateY(-50%);
 }
 
+.mess-actions {
+  background-color: white;
+  flex-direction: column;
+  position: absolute;
+  bottom: 5px;
+  display: flex;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.message-wrapper:hover .mess-actions {
+  opacity: 1;
+}
+
+.my-mess .mess-actions.my-actions {
+  left: -50px;
+}
+
+.receiver-mess .mess-actions.receiver-actions {
+  right: -50px;
+}
+
+.action-icon {
+  cursor: pointer;
+  font-size: 1.2rem;
+  background: black;
+  color: black;
+  border-radius: 50%;
+  padding: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  display: inline-block;
+}
+
+.emoji-list {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  display: flex;
+  gap: 5px;
+  background: white;
+  padding: 5px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 .mess-photo {
   max-width: 100%;
   border-radius: 10px;
@@ -347,6 +436,42 @@ export default {
   color: #4caf50;
 }
 
+.chat-input-box {
+  height: 10%;
+  justify-content: flex-end;
+  position: fixed;
+  bottom: 1em;
+  right: 0;
+  width: 83%;
+  padding: 10px;
+  display: flex;
+}
+
+.message-input {
+  height: 100%;
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  outline: none;
+}
+
+.send-button {
+  height: 100%;
+  margin-left: 10px;
+  padding: 10px 15px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.send-button:hover {
+  background-color: #0056b3;
+}
+
 .chat-item {
   align-items: center;
   padding: 2vh;
@@ -364,13 +489,9 @@ export default {
 
 .receiver-bar {
   width: 100%;
-  height: 60px;
   background-color: #343a40;
-  color: white;
   position: absolute;
-  top: 0;
   left: 0;
-  z-index: 10;
   display: flex;
   align-items: center;
   padding: 10px;

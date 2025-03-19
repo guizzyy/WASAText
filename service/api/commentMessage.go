@@ -24,9 +24,15 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, params
 		return
 	}
 
-	// Get the reaction react from the request body
 	var react utilities.Reaction
-	react.User = id
+
+	// Get the reaction react from the request body
+	react.User, err = rt.db.GetUserByID(id)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during GetUserByID db")
+		http.Error(w, "error getting user", http.StatusInternalServerError)
+		return
+	}
 	if err = json.NewDecoder(r.Body).Decode(&react); err != nil {
 		context.Logger.WithError(err).Error("json comment message decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
