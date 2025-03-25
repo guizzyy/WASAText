@@ -11,16 +11,15 @@ export default {
       ID: sessionStorage.getItem("ID"),
       username: sessionStorage.getItem("username"),
       photo: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
-      message: sessionStorage.getItem("message"),
+      report: sessionStorage.getItem("report"),
       convs: JSON.parse(sessionStorage.getItem("convs")) || [],
       convID: null,
       newUser: "",
       searchResults: [],
-      searchTimeout: null,
       newConv: {},
       groupName: "",
 
-      showLoading: false,
+      searchTimeout: null,
       showUserSearch: false,
       showGroupName: false,
       showPopUp: false,
@@ -30,8 +29,8 @@ export default {
   mounted() {
     this.getConversations();
     setTimeout(() => {
-      sessionStorage.removeItem("message");
-      this.message = "";
+      sessionStorage.removeItem("report");
+      this.report = "";
     }, 3000);
   },
 
@@ -70,7 +69,6 @@ export default {
       clearTimeout(this.searchTimeout);
       this.searchTimeout = setTimeout(async () => {
         this.error = null;
-        this.showLoading = true;
         if (this.newUser.length === 0) {
           this.searchResults = []
         }
@@ -92,7 +90,6 @@ export default {
         }
         setTimeout(() => {
           this.error = null;
-          this.message = "";
         }, 2500)
       }, 300);
     },
@@ -129,7 +126,6 @@ export default {
 
     async startConversation(user) {
       this.error = null;
-      this.showLoading = true;
       try {
         let response = await this.$axios.post("/conversations",
             {username: user.username},
@@ -144,19 +140,18 @@ export default {
         this.convs.push(this.newConv);
         sessionStorage.setItem("convs", JSON.stringify(this.convs));
         this.$router.push({path: `/conversations/${this.newConv.id}`});
-        this.newConv = {};
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = "Invalid username (it must be between 3 and 16 characters).";
+        } else if (e.response?.status === 404) {
+          this.error = "User not found"
         } else if (e.response?.status === 500) {
           this.error = "Server Error, please try again later.";
         } else {
-          this.error = "An unexpected error occurred.";
-          console.error(e); // Log for debugging
+          this.error = e.response.data
         }
       } finally {
         this.closeSearchBar();
-        this.showLoading = false;
       }
       setTimeout(() => {
         this.error = null;
@@ -165,7 +160,6 @@ export default {
 
     async createGroup() {
       this.error = null;
-      this.showLoading = true;
       if (this.groupName.length === 0) {
         this.error = "Write a proper name for a new group";
       }
@@ -179,7 +173,6 @@ export default {
         this.convs.push(this.newConv);
         sessionStorage.setItem("convs", JSON.stringify(this.convs));
         this.$router.push({path: `/conversations/${this.newConv.id}`})
-        this.newConv = {};
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response.data;
@@ -189,7 +182,7 @@ export default {
           this.error = e.toString();
         }
       } finally {
-        this.showLoading = false;
+        this.closeGroupNameBar();
       }
       setTimeout(() => {
         this.error = null;
@@ -211,7 +204,7 @@ export default {
         </router-link>
       </button>
       <button class="icon-btn" aria-label="Profile">
-        <router-link :to="'/users/' + this.ID" class="icon-btn">
+        <router-link :to="'/users/' + ID" class="icon-btn">
           Profile
         </router-link>
       </button>
@@ -219,37 +212,37 @@ export default {
           Logout
       </button>
       <div>
-        <img :src="this.photo" alt="Stored image" class="profile-pic-header">
+        <img :src="photo" alt="Stored image" class="profile-pic-header">
       </div>
     </div>
   </header>
 
   <div class="container-fluid">
+    <div class="d-flex position-relative">
+      <div class="d-flex position-absolute top-0 end-0 mt-3">
+        <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
+        <NotificationMsg v-if="report" :message="report"></NotificationMsg>
+      </div>
+    </div>
+
     <div class="row">
       <main style="height: 90%">
-        <div class="d-flex position-relative">
-          <div class="d-flex position-absolute top-0 end-0 mt-3">
-            <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
-            <NotificationMsg v-if="message" :message="message"></NotificationMsg>
-          </div>
-        </div>
-
         <div class="home-container">
           <h1> Chats </h1>
 
-          <p v-if="this.convs.length === 0">No conversation started yet...</p>
+          <p v-if="convs.length === 0">No conversation started yet...</p>
           <div v-else class="chat-container">
             <div class="chat-list">
-              <router-link v-for="conv in this.convs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat d-flex align-items-start gap-3 p-2">
+              <router-link v-for="conv in convs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat d-flex align-items-start gap-3 p-2">
                 <div class="chat-photo h-auto">
-                  <img :src="conv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg' " alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
+                  <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg' " alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
                 </div>
                 <div class="flex-grow-1">
                   <div class="d-flex justify-content-between">
                     <strong> {{ conv.name }} </strong>
                     <small class="text-muted"> {{ new Date(conv.last_message.timestamp).toLocaleDateString("it-IT", {hour: "numeric", minute: "numeric"}) }} </small>
                   </div>
-                  <p class="text-muted text-truncate mb-0"> {{ conv.last_message.text || "No messages yet..." }} </p>
+                  <p class="text-muted text-truncate mb-0"> {{ conv.last_message.text }} </p>
                 </div>
               </router-link>
             </div>

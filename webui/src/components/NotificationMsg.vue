@@ -13,17 +13,16 @@ export default {
 <style>
 
 .notification-msg {
-  position: fixed; /* Always stays in the same place */
-  top: 20px; /* Position near the top */
+  position: fixed;
+  top: 20px;
   left: 50%;
-  transform: translateX(-50%); /* Centers it horizontally */
-  background: rgb(0, 230, 0); /* Red background with slight transparency */
-  color: white; /* White text for contrast */
+  transform: translateX(-50%);
+  background: rgb(0, 230, 0);
+  color: white;
   padding: 10px 20px;
   border-radius: 5px;
   font-size: 16px;
   font-weight: bold;
-  z-index: 2000; /* Make sure it's above everything */
   animation: fadeIn 0.3s ease-in-out;
 }
 

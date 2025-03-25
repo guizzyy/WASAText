@@ -29,6 +29,16 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, pa
 		return
 	}
 
+	// Get the images for each conversation
+	for i := range convs {
+		convs[i].Photo, err = rt.GetFile(convs[i].Photo)
+		if err != nil {
+			context.Logger.WithError(err).Error("error during GetFile in GetConversations")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(convs); err != nil {

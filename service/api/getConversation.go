@@ -37,15 +37,28 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if conv.Photo, err = rt.GetFile(conv.Photo); err != nil {
+		context.Logger.WithError(err).Error("error during GetFile in getConversation")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	lastMessageID, err := strconv.ParseUint(r.URL.Query().Get("lastID"), 10, 64)
+	if err != nil {
+		context.Logger.WithError(err).Error("error in getting lastMessageID for getConversation")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// Query the database to retrieve all messages for the conversation
-	messages, err := rt.db.GetConversation(convID, id)
+	messages, err := rt.db.GetConversation(convID, id, lastMessageID)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during getConversation db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Query the database to retrieve all members in the conversations
 	members, err := rt.db.GetMembers(convID, id)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during getMembers db")
@@ -53,8 +66,37 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
+	for i := range messages {
+		msg := &messages[i]
+		if msg.Status, err = rt.db.CheckStatus(msg.ID, msg.Sender.ID, len(members)-1); err != nil {
+			context.Logger.WithError(err).Error("error during checkStatus")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if msg.Photo != "" {
+			if msg.Photo, err = rt.GetFile(msg.Photo); err != nil {
+				context.Logger.WithError(err).Error("error during GetFile")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		if msg.Sender.Photo, err = rt.GetFile(msg.Sender.Photo); err != nil {
+			context.Logger.WithError(err).Error("error during GetFile")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	for i := range members {
+		mem := &members[i]
+		if mem.Photo, err = rt.GetFile(mem.Photo); err != nil {
+			context.Logger.WithError(err).Error("error during GetFile")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	response := utilities.ConvResponse{
-		ID:       conv.ID,
 		Type:     conv.Type,
 		Name:     conv.Name,
 		Photo:    conv.Photo,

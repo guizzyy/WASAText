@@ -1,6 +1,4 @@
 <script>
-
-
 import {RouterLink} from "vue-router";
 import ErrorMsg from "../components/ErrorMsg.vue";
 import NotificationMsg from "../components/NotificationMsg.vue";
@@ -13,7 +11,7 @@ export default {
       myID: parseInt(sessionStorage.getItem("ID")),
       myUsername: sessionStorage.getItem("username"),
       myPhoto: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
-      currConv: JSON.parse(sessionStorage.getItem("currentConv")),
+      currGroup: JSON.parse(sessionStorage.getItem("currGroup")),
       currConvID: this.$route.params.convID,
       searchResults: [],
       members: [],
@@ -83,10 +81,8 @@ export default {
         let response = await this.$axios.put(`conversations/${this.currConvID}/manage/name`, {name: this.newName},{
           headers: { Authorization: sessionStorage.getItem("ID") }
         });
-        this.currConv.name = this.newName;
-        let storedConv = JSON.parse(sessionStorage.getItem("currentConv"));
-        storedConv.name = this.newName
-        sessionStorage.setItem("currentConv", JSON.stringify(storedConv))
+        this.currGroup.name = this.newName;
+        sessionStorage.setItem("currGroup", JSON.stringify(this.currGroup))
         this.report = response.data.report;
         this.closeNameBar();
       } catch (e) {
@@ -119,6 +115,7 @@ export default {
           }
         });
         this.report = response.data.message;
+        this.currGroup.photo = response.data.photo
         this.closePhotoBar();
       } catch (e) {
         if (e.response?.status === 400) {
@@ -169,6 +166,7 @@ export default {
           }
         });
         this.report = response.data.report;
+        await this.getMembers();
         this.closeSearchBar();
       } catch (e) {
         if (e.response?.status === 400) {
@@ -267,13 +265,21 @@ export default {
     <NotificationMsg v-if="report" :message="report"></NotificationMsg>
 
     <div class="w-75 h-auto align-items-center">
+      <div class="text-white">
+        <div class="position-absolute" style="top: 75px; left: 15px; z-index: 10;">
+          <router-link :to="'/conversations/' + currConvID" class="btn btn-link text-white">
+            <i class="fas fa-arrow-left fa-3x"></i>
+          </router-link>
+        </div>
+      </div>
+
       <div class="text-center position-absolute d-flex flex-column p-3 rounded-3"
            style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
         <div class="d-flex align-items-center justify-content-between w-100 mb-3">
           <div class="d-flex align-items-center">
-            <img :src="this.currConv.photo || 'https://developer.jboss.org/images/jive-sgroup-default-portrait-large.png'"
+            <img :src="currGroup.photo || 'https://developer.jboss.org/images/jive-sgroup-default-portrait-large.png'"
                  alt="Profile pic" class="profile-pic-header me-3">
-            <strong style="font-size: large; color: black"> {{ this.currConv.name }} </strong>
+            <strong style="font-size: large; color: black"> {{ currGroup.name }} </strong>
           </div>
           <div>
             <i class="fas fa-user-plus text-primary me-3" @click="openSearchBar" style="cursor: pointer"></i>

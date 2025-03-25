@@ -37,7 +37,7 @@ func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	// Get the new username wanted form the request body
+	// Get the new username wanted from the request body
 	var user utilities.User
 	user.ID = loggedID
 	if err = json.NewDecoder(r.Body).Decode(&user); err != nil {

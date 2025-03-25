@@ -69,6 +69,15 @@ func (rt *_router) getComments(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
+	for i := range reactions {
+		reactions[i].User.Photo, err = rt.GetFile(reactions[i].User.Photo)
+		if err != nil {
+			context.Logger.WithError(err).Error("error in GetFile in GetComments")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(reactions); err != nil {

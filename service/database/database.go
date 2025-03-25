@@ -58,14 +58,15 @@ type AppDatabase interface {
 	GroupStillExists(uint64) error
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
-	GetConversation(uint64, uint64) ([]utilities.Message, error)
+	GetConversation(uint64, uint64, uint64) ([]utilities.Message, error)
 	GetReceivers(uint64, uint64) ([]uint64, error)
 	GetMembers(uint64, uint64) ([]utilities.User, error)
 	GetGroupPhoto(uint64) (string, error)
 	GetPrivConvInfo(uint64, uint64) (string, string, error)
 	GetGroupConvInfo(uint64) (string, string, error)
-	ConvHasMessages(uint64) error
+	ConvHasMessages(uint64) (bool, error)
 	GetConvByID(uint64, uint64) (utilities.Conversation, error)
+	DeleteConv(uint64) error
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
@@ -73,6 +74,7 @@ type AppDatabase interface {
 	InsertStatus([]uint64, uint64, uint64) (string, error)
 	UpdateReceivedStatus(uint64) error
 	UpdateReadStatus(uint64, uint64) error
+	CheckStatus(uint64, uint64, int) (string, error)
 	IsOwnerMessage(uint64, uint64) (bool, error)
 	IsMessageInConv(uint64, uint64) (bool, error)
 
@@ -114,7 +116,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		tables := map[string]string{
 			"user": `CREATE TABLE IF NOT EXISTS user (
     		id INTEGER PRIMARY KEY, 
-    		name VARCHAR(16) UNIQUE NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
+    		name VARCHAR(16) COLLATE NOCASE UNIQUE NOT NULL CHECK ( length(name) >= 3 AND length(name) <= 16 ),
     		photo TEXT DEFAULT NULL)`,
 
 			"conversation": `CREATE TABLE IF NOT EXISTS conversation (
@@ -132,7 +134,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 			"message": `CREATE TABLE IF NOT EXISTS message (
     		id INTEGER PRIMARY KEY,
-    		text VARCHAR(250) CHECK ( length(text) > 0 AND length(text) <= 250 ),
+    		text VARCHAR(250) CHECK ( length(text) >= 0 AND length(text) <= 250 ),
     		photo TEXT DEFAULT NULL,
     		conv_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,

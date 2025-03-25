@@ -237,6 +237,16 @@ paths:
       description: |
         Retrieve a conversation with a user or a group
       operationId: getConversation
+      parameters:
+        - name: lastID
+          in: query
+          required: true
+          description: last message ID
+          schema:
+            type: integer
+            example: 100
+            readOnly: true
+            description: id message
       responses:
         '200':
           description: chat loaded successfully

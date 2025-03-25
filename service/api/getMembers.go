@@ -37,6 +37,15 @@ func (rt *_router) getMembers(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
+	for i := range members {
+		members[i].Photo, err = rt.GetFile(members[i].Photo)
+		if err != nil {
+			context.Logger.WithError(err).Error("error in GetFile in getMembers")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(members); err != nil {

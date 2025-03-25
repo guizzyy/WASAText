@@ -67,7 +67,7 @@ func (db *appdbimpl) SetPhoto(u utilities.User) error {
 
 func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, error) {
 	//	Get the users wanted with a given username string (avoiding the user self)
-	rows, err := db.c.Query(`SELECT name, photo FROM user WHERE id != ? AND name LIKE ?`, id, username+"%")
+	rows, err := db.c.Query(`SELECT id, name, photo FROM user WHERE id != ? AND name LIKE ?`, id, username+"%")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get users from database: %w", err)
 	}
@@ -77,7 +77,7 @@ func (db *appdbimpl) GetUsers(username string, id uint64) ([]utilities.User, err
 	for rows.Next() {
 		var user utilities.User
 		var photo sql.NullString
-		if err = rows.Scan(&user.Username, &photo); err != nil {
+		if err = rows.Scan(&user.ID, &user.Username, &photo); err != nil {
 			return nil, fmt.Errorf("error in scanning users info for search: %w", err)
 		}
 		user.Photo = photo.String

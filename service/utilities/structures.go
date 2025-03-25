@@ -5,6 +5,10 @@ import (
 	"time"
 )
 
+var ErrUsernameString = errors.New("invalid string format for the username (length should be between 3 and 16)")
+var ErrGroupNameString = errors.New("invalid string format for the group name (length should be between 3 and 25)")
+var ErrTextString = errors.New("invalid string format for the message (length should be between 1 and 250)")
+
 type User struct {
 	ID       uint64 `json:"id"`
 	Username string `json:"username"`
@@ -35,7 +39,7 @@ type Conversation struct {
 	ID          uint64  `json:"id"`
 	Type        string  `json:"type"`
 	Name        string  `json:"name"`
-	Photo       string  `json:"photo"`
+	Photo       string  `json:"conv_photo"`
 	LastMessage Message `json:"last_message"`
 }
 
@@ -45,19 +49,14 @@ type LoginResponse struct {
 }
 
 type PhotoResponse struct {
-	Message string `json:"message"`
-	Photo   string `json:"photo"`
+	Report string `json:"report"`
+	Photo  string `json:"photo"`
 }
 
 type ConvResponse struct {
-	ID       uint64    `json:"id"`
 	Type     string    `json:"type"`
 	Name     string    `json:"name"`
 	Photo    string    `json:"photo"`
 	Messages []Message `json:"messages"`
 	Members  []User    `json:"members"`
 }
-
-var ErrUsernameString = errors.New("invalid string format for the username (length should be between 3 and 16)")
-var ErrGroupNameString = errors.New("invalid string format for the group name (length should be between 3 and 25)")
-var ErrTextString = errors.New("invalid string format for the message (length should be between 1 and 250)")

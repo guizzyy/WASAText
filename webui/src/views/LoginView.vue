@@ -9,7 +9,7 @@
         photo: "",
         username: "",
         ID: 0,
-        message: ""
+        report: ""
       }
     },
 
@@ -25,7 +25,7 @@
             sessionStorage.setItem("ID", response.data.user.id);
             sessionStorage.setItem("username", response.data.user.username);
             sessionStorage.setItem("photo", response.data.user.photo);
-            sessionStorage.setItem("message", response.data.message);
+            sessionStorage.setItem("report", response.data.message);
             this.$router.push({ path : "/conversations" })
           } catch (e) {
             if (e.response?.status === 400) {

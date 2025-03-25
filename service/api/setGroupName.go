@@ -23,22 +23,22 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 		return
 	}
 
-	var conv utilities.Conversation
+	var group utilities.Conversation
 
-	// Get conv id and the new name to update from request body and path params
-	if conv.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
+	// Get group id and the new name to update from request body and path params
+	if group.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
 		context.Logger.WithError(err).Error("error in getting convID for setGroupName")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err = json.NewDecoder(r.Body).Decode(&conv); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&group); err != nil {
 		context.Logger.WithError(err).Error("json set group name decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Check if the new name has the correct format
-	if check, err := rt.checkGroupStringFormat(conv.Name); err != nil {
+	if check, err := rt.checkGroupStringFormat(group.Name); err != nil {
 		context.Logger.WithError(err).Error("error during string format check")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -49,7 +49,7 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, params h
 	}
 
 	// Set the new group name in the database
-	if err = rt.db.SetGroupName(conv, id); err != nil {
+	if err = rt.db.SetGroupName(group, id); err != nil {
 		context.Logger.WithError(err).Error("error during set group name db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

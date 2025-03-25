@@ -2,10 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
 	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -36,10 +39,24 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
-	// Get the photo from the request body and save the file path
-	filePath, err := rt.GetPhotoPath(w, r, context)
+	// Get the photo from the request body and save it in the correct folder
+	mainDir := strconv.FormatUint(loggedID, 10)
+	fileName, file, err := rt.GetFilePath(w, r, context)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during get photo path")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	filePath := fmt.Sprintf("./uploads/%s/%s", mainDir, fileName)
+	dst, err := os.Create(filePath)
+	if err != nil {
+		context.Logger.WithError(err).Error("Error during create file path")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+	if _, err = io.Copy(dst, file); err != nil {
+		context.Logger.WithError(err).Error("Error during copy file to path")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -52,7 +69,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 	if user.Photo != "" {
-		if err = rt.DeletePhotoPath(user.Photo); err != nil {
+		if err = rt.DeleteUserPhoto(user.Photo); err != nil {
 			context.Logger.WithError(err).Error("Error during delete current user photo path")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -68,11 +85,19 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
+	apiPhoto, err := rt.GetFile(user.Photo)
+	if err != nil {
+		context.Logger.WithError(err).Error("Error during GetFile for user photo")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Send the client a notification for the success of the operation
 	response := utilities.PhotoResponse{
-		Message: "Profile photo updated successfully",
-		Photo:   "http://localhost:3000/" + filePath,
+		Report: "Profile photo updated successfully",
+		Photo:  apiPhoto,
 	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if err = json.NewEncoder(w).Encode(response); err != nil {

@@ -2,10 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
 	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -33,14 +36,38 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 	pMess := &mess
 
 	// Get the photo file path (if an image has been sent)
-	if mess.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
-		context.Logger.WithError(err).Error("error during GetPhotoPath sendMessage")
+	mPhoto, file, err := rt.GetFilePath(w, r, context)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during GetFilePath for message photo")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if mPhoto != "" {
+		uDir := strconv.FormatUint(mess.Sender.ID, 10)
+		filePath := fmt.Sprintf("./uploads/%s/%s/%s", uDir, "sent", mPhoto)
+		dst, err := os.Create(filePath)
+		if err != nil {
+			context.Logger.WithError(err).Error("Error during create file path")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer dst.Close()
+		if _, err = io.Copy(dst, file); err != nil {
+			context.Logger.WithError(err).Error("Error during copy file to path")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		mess.Photo = filePath
+	}
 
 	// Check the correct format for the string
-	if mess.Text = r.FormValue("text"); len(mess.Text) == 0 || len(mess.Text) >= 250 {
+	mess.Text = r.FormValue("text")
+	if mess.Text == "" && mess.Photo == "" {
+		context.Logger.Error("message is completely empty")
+		http.Error(w, "message is completely empty", http.StatusBadRequest)
+		return
+	}
+	if len(mess.Text) > 250 {
 		context.Logger.Error(utilities.ErrTextString)
 		http.Error(w, utilities.ErrTextString.Error(), http.StatusBadRequest)
 		return
@@ -58,6 +85,15 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 		context.Logger.WithError(err).Error("error during addMessage db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Get the photo sent for the API
+	if mess.Photo != "" {
+		if mess.Photo, err = rt.GetFile(mess.Photo); err != nil {
+			context.Logger.WithError(err).Error("error during GetFile for mess photo")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

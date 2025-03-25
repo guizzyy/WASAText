@@ -51,6 +51,9 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
+	// Schedule the deletion of conversation if no messages are sent within 3 minutes
+	go rt.ScheduleConvDeleting(group.ID, context, w)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(group); err != nil {

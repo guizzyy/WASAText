@@ -13,10 +13,9 @@ export default {
       photo: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
       newUsername: "",
       newPhoto: "",
-      notification: "",
+      report: "",
       selectedFile: null,
 
-      showLoading: false,
       showUsernameBar: false,
       showPhotoBar: false
     }
@@ -61,7 +60,7 @@ export default {
         let response = await this.$axios.put(`users/${this.ID}/username`, {username: this.newUsername},{
           headers: { Authorization: sessionStorage.getItem("ID") }
             });
-        this.notification = response.data.report;
+        this.report = response.data.report;
         sessionStorage.setItem('username', this.newUsername);
         this.username = this.newUsername;
         this.closeUsernameBar();
@@ -76,7 +75,7 @@ export default {
       }
       setTimeout(() => {
         this.error = null;
-        this.notification = "";
+        this.report = "";
       }, 2500)
     },
 
@@ -88,18 +87,16 @@ export default {
       try {
         let formData = new FormData();
         formData.append('photo', this.selectedFile);
-        let response = await this.$axios.put(`users/${this.ID}/photo`, formData, {
-          headers : {
-            "Content-type" : "multipart/form-data",
-            Authorization : sessionStorage.getItem("ID")
+         let response = await this.$axios.put(`/users/${this.ID}/photo`, formData, {
+          headers: {
+            "Content-type": "multipart/form-data",
+            Authorization: sessionStorage.getItem("ID")
           }
         });
-        this.notification = response.data.message;
-        console.log("url photo: ", response.data.photo)
-        let newUrl = response.data.photo;
-        sessionStorage.setItem("photo", newUrl);
-        this.photo = newUrl;
-        console.log(this.photo)
+        console.log(response)
+        this.report = response.data.report;
+        this.photo = response.data.photo;
+        sessionStorage.setItem("photo", this.photo);
         this.closePhotoBar();
       } catch (e) {
         if (e.response?.status === 400) {
@@ -112,7 +109,7 @@ export default {
       }
       setTimeout(() => {
         this.error = null;
-        this.notification = "";
+        this.report = "";
       }, 2500)
     },
   },
@@ -123,14 +120,21 @@ export default {
 
   <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
     <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
+
     <div class="set-buttons d-flex align-items-center me-3 ms-auto gap-3">
       <button class="icon-btn" aria-label="Home">
-        <router-link to="/conversations" class="icon-btn">Home</router-link>
+        <router-link to="/conversations" class="icon-btn">
+          Home
+        </router-link>
       </button>
       <button class="icon-btn" aria-label="Profile">
-        <router-link :to="'/users/' + ID" class="icon-btn">Profile</router-link>
+        <router-link :to="'/users/' + ID" class="icon-btn">
+          Profile
+        </router-link>
       </button>
-      <button class="icon-btn" aria-label="Logout" @click="logout">Logout</button>
+      <button class="icon-btn" aria-label="Logout" @click="logout">
+        Logout
+      </button>
       <div>
         <img :src="photo" alt="Stored image" class="profile-pic-header">
       </div>
@@ -143,7 +147,7 @@ export default {
     <div class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3 rounded-3"
          style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
       <div>
-        <img :src="photo" alt="Profile pic" class="profile-pic">
+        <img :src="this.photo" alt="Profile pic" class="profile-pic">
       </div>
 
       <div style="flex-grow: 1; color: black">

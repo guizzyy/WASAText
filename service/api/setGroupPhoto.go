@@ -5,7 +5,9 @@ import (
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
 	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
+	"io"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -23,24 +25,24 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
-	var conv utilities.Conversation
+	var group utilities.Conversation
 
 	// Get the group id interested
-	if conv.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
+	if group.ID, err = strconv.ParseUint(params.ByName("convID"), 10, 64); err != nil {
 		context.Logger.WithError(err).Error("error in getting convID for setGroupPhoto")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Delete the previous group photo if there was an existing one
-	currPhoto, err := rt.db.GetGroupPhoto(conv.ID)
+	currPhoto, err := rt.db.GetGroupPhoto(group.ID)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during get current group photo db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if currPhoto != "" {
-		if err = rt.DeletePhotoPath(currPhoto); err != nil {
+		if err = rt.DeleteGroupPhoto(currPhoto); err != nil {
 			context.Logger.WithError(err).Error("error during delete current group photo path")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -48,21 +50,44 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 	}
 
 	// Get the photo from the request body and save the file path; get the group id
-	if conv.Photo, err = rt.GetPhotoPath(w, r, context); err != nil {
-		context.Logger.WithError(err).Error("error during get photo path setGroupPhoto")
+	gPhoto, file, err := rt.GetFilePath(w, r, context)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during GetFilePath for group photo")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	filePath := gPhoto
+	dst, err := os.Create(filePath)
+	if err != nil {
+		context.Logger.WithError(err).Error("Error during create file path")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+	if _, err = io.Copy(dst, file); err != nil {
+		context.Logger.WithError(err).Error("Error during copy file to path")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	group.Photo = filePath
 
 	// Set the new group photo in the database
-	if err = rt.db.SetGroupPhoto(conv, id); err != nil {
+	if err = rt.db.SetGroupPhoto(group, id); err != nil {
 		context.Logger.WithError(err).Error("error during setGroupPhoto db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	response := utilities.Notification{
+	apiPhoto, err := rt.GetFile(group.Photo)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during GetFile for group photo")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := utilities.PhotoResponse{
 		Report: "Group photo updated successfully",
+		Photo:  apiPhoto,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -37,28 +37,34 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		return
 	}
 
-	response := utilities.LoginResponse{
-		UserLogged: userLog,
-	}
+	response := utilities.LoginResponse{}
 
-	w.Header().Set("Content-Type", "application/json")
 	if !isNew {
 		// The user already exists
 		w.WriteHeader(http.StatusOK)
-		response.Message = "Login successful"
-		if err = json.NewEncoder(w).Encode(response); err != nil {
-			context.Logger.WithError(err).Error("json login encode error")
+		if userLog.Photo, err = rt.GetFile(userLog.Photo); err != nil {
+			context.Logger.WithError(err).Error("error during GetFile")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		response.Message = "Login successful"
+		response.UserLogged = userLog
 	} else {
 		// The user is new
-		w.WriteHeader(http.StatusCreated)
-		response.Message = "User created successfully"
-		if err = json.NewEncoder(w).Encode(response); err != nil {
-			context.Logger.WithError(err).Error("json login encode error")
+		if err = rt.CreateUserDir(userLog.ID, context, w); err != nil {
+			context.Logger.WithError(err).Error("error during create user dir")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		w.WriteHeader(http.StatusCreated)
+		response.Message = "User created successfully"
+		response.UserLogged = userLog
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(response); err != nil {
+		context.Logger.WithError(err).Error("json login encode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }

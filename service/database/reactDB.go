@@ -20,14 +20,14 @@ func (db *appdbimpl) AddReaction(react utilities.Reaction, messId uint64) error 
 		return fmt.Errorf("error in checking if the reaction exists: %w", err)
 	} else if !isIn {
 		//	if it doesn't exist, insert a new one
-		_, err = db.c.Exec(`INSERT INTO reactions(reaction, mess_id, sender_id) VALUES (?, ?, ?)`, react.Emoji, messId, react.User)
+		_, err = db.c.Exec(`INSERT INTO reactions(reaction, mess_id, sender_id) VALUES (?, ?, ?)`, react.Emoji, messId, react.User.ID)
 		if err != nil {
 			return fmt.Errorf("error adding reaction: %w", err)
 		}
 		return nil
 	} else {
 		//	if it exists, update it with another reaction
-		_, err = db.c.Exec(`UPDATE reactions SET reaction = ?, timestamp = CURRENT_TIMESTAMP WHERE sender_id = ? AND mess_id = ?`, react.Emoji, react.User, messId)
+		_, err = db.c.Exec(`UPDATE reactions SET reaction = ?, timestamp = CURRENT_TIMESTAMP WHERE sender_id = ? AND mess_id = ?`, react.Emoji, react.User.ID, messId)
 		if err != nil {
 			return fmt.Errorf("error updating reaction: %w", err)
 		}

@@ -63,6 +63,12 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 
+	if conv.Photo, err = rt.GetFile(conv.Photo); err != nil {
+		context.Logger.WithError(err).Error("error during GetFile in GetConversations")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	// Schedule the deletion of conversation if no messages are sent within 5 minutes
 	go rt.ScheduleConvDeleting(conv.ID, context, w)
 

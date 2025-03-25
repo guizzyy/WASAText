@@ -122,6 +122,54 @@ func (db *appdbimpl) UpdateReceivedStatus(uID uint64) error {
 	return nil
 }
 
+func (db *appdbimpl) CheckStatus(mID uint64, sID uint64, nReceivers int) (string, error) {
+	// Check the current status of the message for all the users
+	query := `SELECT
+					s.info, COUNT(*)
+				FROM
+				    status as s, message as m
+				WHERE
+				    m.id = s.mess_id AND
+				    m.sender_id = ? AND
+				    m.id = ?
+				GROUP BY
+				    s.info
+				`
+	rows, err := db.c.Query(query, sID, mID)
+	if err != nil {
+		return "", fmt.Errorf("error checking status for message to receiver: %w", err)
+	}
+	defer rows.Close()
+
+	statusCount := map[string]int{
+		"Unreceived": 0,
+		"Received":   0,
+		"Read":       0,
+	}
+
+	for rows.Next() {
+		var info string
+		var count int
+		if err = rows.Scan(&info, &count); err != nil {
+			return "", fmt.Errorf("error scanning message to receiver: %w", err)
+		}
+		statusCount[info] = count
+	}
+
+	//	Check errors during the scanning of the rows
+	if err = rows.Err(); err != nil {
+		return "", fmt.Errorf("error in getting status in a conversation: %w", err)
+	}
+
+	if statusCount["Read"] == nReceivers {
+		return "Read", nil
+	}
+	if statusCount["Unreceived"] > 0 {
+		return "Unreceived", nil
+	}
+	return "Received", nil
+}
+
 func (db *appdbimpl) IsOwnerMessage(mID uint64, owner_id uint64) (bool, error) {
 	//	Check if the owner id is the same of the message
 	var owner uint64

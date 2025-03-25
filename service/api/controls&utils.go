@@ -6,6 +6,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
@@ -89,7 +90,10 @@ func (rt *_router) checkEmojiFormat(emoji string) (bool, error) {
 func (rt *_router) checkFileFormat(file multipart.File) (bool, error) {
 	buffer := make([]byte, 512)
 	if _, err := file.Read(buffer); err != nil {
-		return false, fmt.Errorf("error reading file: %v", err)
+		return false, fmt.Errorf("error reading file: %w", err)
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return false, fmt.Errorf("error seeking file: %wd", err)
 	}
 	contentType := http.DetectContentType(buffer)
 	switch contentType {
@@ -100,12 +104,12 @@ func (rt *_router) checkFileFormat(file multipart.File) (bool, error) {
 	}
 }
 
-func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context reqcontext.RequestContext) (string, error) {
+func (rt *_router) GetFilePath(w http.ResponseWriter, r *http.Request, context reqcontext.RequestContext) (string, multipart.File, error) {
 	// Set the dimension of the request body
-	if err := r.ParseMultipartForm(1 << 20); err != nil {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		context.Logger.WithError(err).Error("error during ParseMultipartForm")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return "", err
+		return "", nil, err
 	}
 
 	// Get the file from the request body (if missing, return empty string)
@@ -116,11 +120,11 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 		} else {
 			context.Logger.WithError(err).Error("Error during file upload")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return "", err
+			return "", nil, err
 		}
 	}
 	if file == nil {
-		return "", nil
+		return "", nil, nil
 	}
 	defer file.Close()
 
@@ -128,49 +132,82 @@ func (rt *_router) GetPhotoPath(w http.ResponseWriter, r *http.Request, context 
 	if isImage, err := rt.checkFileFormat(file); err != nil {
 		context.Logger.WithError(err).Error("Error during check file format")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return "", err
+		return "", nil, err
 	} else if !isImage {
 		context.Logger.Error("File is not an image")
 		http.Error(w, "Not a file image uploaded", http.StatusBadRequest)
-		return "", err
+		return "", nil, err
 	}
 
-	// Create a file in the folder (unique name) and copy the image in it
-	uniqueFile := fmt.Sprintf("%s_%s", uuid.New().String(), filepath.Ext(handler.Filename))
-	filePath := filepath.Join("./uploads", uniqueFile)
-	fileLocal, err := os.Create(filePath)
-	if err != nil {
-		context.Logger.WithError(err).Error("Error during file creation")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return "", err
-	}
-	defer fileLocal.Close()
-	_, err = io.Copy(fileLocal, file)
-	if err != nil {
-		context.Logger.WithError(err).Error("Error during file copy")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return "", err
-	}
-	return filePath, nil
+	// Create a unique file name to return along with the file
+	uniqueFile := fmt.Sprintf("%s%s", uuid.New().String(), filepath.Ext(handler.Filename))
+	return uniqueFile, file, nil
 }
 
-func (rt *_router) DeletePhotoPath(oldPhoto string) error {
+func (rt *_router) DeleteUserPhoto(oldPhoto string) error {
 	if err := os.Remove(oldPhoto); err != nil {
 		return err
 	}
 	return nil
 }
 
+func (rt *_router) DeleteGroupPhoto(oldPhoto string) error {
+	filePath := filepath.Join("./uploads/groups", oldPhoto)
+	if err := os.Remove(filePath); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (rt *_router) ScheduleConvDeleting(convID uint64, context reqcontext.RequestContext, w http.ResponseWriter) {
-	// Wait 5 minutes before deleting the conversation created
+	// Wait 3 minutes before deleting the conversation created
 	time.Sleep(3 * time.Minute)
 
 	// Query the database in order to check if there are messages
-	if err := rt.db.ConvHasMessages(convID); err != nil {
+	if hasMess, err := rt.db.ConvHasMessages(convID); err != nil {
 		context.Logger.WithError(err).Error("error during ConvHasMessages")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	} else if !hasMess {
+		if err = rt.db.DeleteConv(convID); err != nil {
+			context.Logger.WithError(err).Error("error during DeleteConv for group chat")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			context.Logger.Info("Deleted conversation done")
+			return
+		}
 	}
-	context.Logger.Info("Deleted conversation done")
 	return
+}
+
+func (rt *_router) CreateUserDir(uID uint64, context reqcontext.RequestContext, w http.ResponseWriter) error {
+	// Create the directory with the photos managed from the user
+	directoryDir := filepath.Join("./uploads", fmt.Sprintf("%d", uID))
+	if err := os.MkdirAll(directoryDir, os.ModePerm); err != nil {
+		context.Logger.WithError(err).Error("error during CreateUserDir user directory")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+
+	// Create the directory with the photos sent
+	photosSentDir := filepath.Join(directoryDir, "sent")
+	if err := os.MkdirAll(photosSentDir, os.ModePerm); err != nil {
+		context.Logger.WithError(err).Error("error during CreateUserDir photos sent directory")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return err
+	}
+	return nil
+}
+
+func (rt *_router) GetFile(url string) (string, error) {
+	if url == "" {
+		return "", nil
+	}
+	byteArray, err := os.ReadFile(url)
+	if err != nil {
+		return "", err
+	}
+
+	file := base64.StdEncoding.EncodeToString(byteArray)
+	fullUrl := fmt.Sprintf("data:image/*;base64,%s", file)
+	return fullUrl, nil
 }
