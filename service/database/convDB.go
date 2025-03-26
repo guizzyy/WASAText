@@ -457,12 +457,13 @@ func (db *appdbimpl) PrivConvExists(u utilities.User, receiver utilities.User) (
 				    	FROM 
 				    	    membership AS m 
 				    	WHERE 
-				    	    m.user_id IN (?, ?) 
+				    	    m.user_id IN (?, ?)
 				    	GROUP BY 
 				    	    m.conv_id 
 				    	HAVING 
-				    	    COUNT(DISTINCT m.user_id) = 2)`
-	err := db.c.QueryRow(query, u.ID, receiver.ID).Scan(&conv.ID, &conv.Type)
+				    	    COUNT(DISTINCT m.user_id) = 2) AND
+				    c.type = ?`
+	err := db.c.QueryRow(query, u.ID, receiver.ID, "private").Scan(&conv.ID, &conv.Type)
 	if err != nil {
 		//	If the error is NoRows, it means the conversation doesn't exist
 		if errors.Is(err, sql.ErrNoRows) {

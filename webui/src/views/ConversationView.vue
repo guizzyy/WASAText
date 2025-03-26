@@ -125,7 +125,6 @@ export default {
     async sendMessage() {
       if (!this.sentMessage && !this.sentPhoto) {
         this.error = "Can't send an empty message";
-        return
       }
       try {
         let formData = new FormData();
@@ -147,7 +146,7 @@ export default {
         this.scrollToBottom();
       } catch (e) {
         if (e.response?.status === 400) {
-          this.error = e.response;
+          this.error = e.response.data;
         } else if (e.response?.status === 500) {
           this.error = e.response.data
         } else {

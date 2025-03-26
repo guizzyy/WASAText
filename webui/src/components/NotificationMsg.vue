@@ -24,6 +24,7 @@ export default {
   font-size: 16px;
   font-weight: bold;
   animation: fadeIn 0.3s ease-in-out;
+  z-index: 9999;
 }
 
 @keyframes fadeIn {

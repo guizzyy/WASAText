@@ -37,11 +37,11 @@ export default {
       </div>
 
       <div class="mess-actions" :class="{'my-actions': message.sender.id === myID, 'receiver-actions': message.sender.id !== myID}">
-        <i class="action-icon bi bi-forward" @click="$emit('forward', message)"></i>
-        <i v-if="message.sender.id === myID" class="action-icon fa-solid fa-delete-left" @click="$emit('delete', message.id)"></i>
-        <i class="action-icon fa-brands fa-react" @click="$emit('toggle-reactions', message.id)"></i>
+        <i class="action-icon fas fa-arrow-alt-circle-right" @click=""></i>
+        <i v-if="message.sender.id === myID" class="action-icon fas fa-solid fa-delete-left"></i>
+        <i class="action-icon fas fa-angry" @click=""></i>
         <div v-if="reactionOf === message.id" class="emoji-list">
-          <span v-for="emoji in emojis" :key="emoji" @click="$emit('comment', { message, emoji })">{{ emoji }}</span>
+          <span v-for="emoji in emojis" :key="emoji" @click="">{{ emoji }}</span>
         </div>
       </div>
     </div>
@@ -121,6 +121,7 @@ export default {
   gap: 5px;
   opacity: 0;
   transition: opacity 0.2s;
+  z-index: 999;
 }
 
 .message-wrapper:hover .mess-actions {
@@ -139,7 +140,7 @@ export default {
   cursor: pointer;
   font-size: 1.5rem;
   background: black;
-  color: black;
+  color: red;
   border-radius: 50%;
   padding: 4px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.2);
