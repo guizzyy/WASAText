@@ -113,37 +113,36 @@ export default {
 }
 
 .mess-actions {
-  background-color: white;
   flex-direction: column;
   position: absolute;
-  bottom: 5px;
+  top: 50%;
   display: flex;
   gap: 5px;
   opacity: 0;
   transition: opacity 0.2s;
-  z-index: 999;
+  transform: translate(0, -50%);
 }
 
-.message-wrapper:hover .mess-actions {
+.mess-bubble:hover .mess-actions {
   opacity: 1;
 }
 
 .my-mess .mess-actions.my-actions {
-  left: -50px;
+  right: 100%;
+  padding-right: 20px;
 }
 
 .receiver-mess .mess-actions.receiver-actions {
-  right: -50px;
+  left: 100%;
+  padding-left: 20px;
 }
 
 .action-icon {
   cursor: pointer;
   font-size: 1.5rem;
-  background: black;
-  color: red;
+  color: white;
   border-radius: 50%;
   padding: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   display: inline-block;
 }
 

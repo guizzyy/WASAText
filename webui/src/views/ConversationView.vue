@@ -229,10 +229,10 @@ export default {
         </div>
 
         <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-          <div v-if="!myConvs || myConvs.length === 0" class="h-100 mt-3 d-flex justify-content-center align-items-center text-center">
+          <div v-if="!myConvs || myConvs.length === 0" class="d-flex justify-content-center align-items-center text-center">
             <p class="text-black">No conversation started yet...</p>
           </div>
-          <div v-else class="chat-list h-100 mt-2 d-flex flex-column">
+          <div v-else class="chat-list h-100 d-flex flex-column">
             <router-link v-for="conv in myConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2">
               <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
               <span class="ms-3">{{ conv.name }}</span>
@@ -357,7 +357,6 @@ export default {
 
 .chat-item {
   align-items: center;
-  padding: 2vh;
   display: block;
   cursor: pointer;
   text-decoration: none;

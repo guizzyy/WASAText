@@ -369,9 +369,13 @@ export default {
   border-radius: 5px;
 }
 
+ul {
+  padding-inline-start: 0;
+}
+
 .member-list {
   height: 70vh;
-  overflow-y: scroll;
+  overflow-y: auto;
   border-radius: 10px;
   background-color: #f9f9f9;
   width: auto;

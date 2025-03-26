@@ -53,17 +53,17 @@
     </div>
   </div>
 
-  <div class="d-flex justify-content-center position-absolute" style="top: 27%; width: 100%; height: 100%;">
+  <div class="d-flex justify-content-center position-absolute" style="top: 27%; width: 100%; height: auto;">
     <div class="justify-content-between flex-wrap flex-md-nowrap align-items-center">
       <h2 class="h2 text-center">Welcome to WASAText</h2>
     </div>
   </div>
 
-  <div class="d-flex justify-content-center position-absolute" style="top: 40%; width: 100%; height: 100%;">
+  <div class="d-flex justify-content-center position-absolute" style="top: 40%; width: 100%; height: auto;">
     <h2 class="h2 text-center" v-if="username"> {{ username }}</h2>
   </div>
 
-  <div class="d-flex justify-content-center position-absolute" style="top: 52%; left: 0; width: 100%; height: 100%; padding-top: 1.5rem">
+  <div class="d-flex justify-content-center position-absolute" style="top: 52%; left: 0; width: 100%; height: auto; padding-top: 1.5rem">
     <form @submit="doLogin" class="mt-6">
       <div class="flex items-center justify-center min-h-screen">
         <input id="username-given" v-model="username" type="text" placeholder="Enter your username" autocomplete="off" maxlength="16"
@@ -110,4 +110,7 @@ form {
   max-width: 400px;
 }
 
+img {
+  object-fit: cover;
+}
 </style>
