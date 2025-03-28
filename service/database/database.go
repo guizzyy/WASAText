@@ -64,17 +64,16 @@ type AppDatabase interface {
 	GetGroupPhoto(uint64) (string, error)
 	GetPrivConvInfo(uint64, uint64) (string, string, error)
 	GetGroupConvInfo(uint64) (string, string, error)
-	ConvHasMessages(uint64) (bool, error)
 	GetConvByID(uint64, uint64) (utilities.Conversation, error)
-	DeleteConv(uint64) error
 
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64, uint64) error
+	GetLastMessage(uint64, uint64) (utilities.Message, error)
 	InsertStatus([]uint64, uint64, uint64) (string, error)
 	UpdateReceivedStatus(uint64) error
 	UpdateReadStatus(uint64, uint64) error
-	CheckStatus(uint64, uint64, int) (string, error)
+	CheckStatus(uint64, uint64) (string, error)
 	IsOwnerMessage(uint64, uint64) (bool, error)
 	IsMessageInConv(uint64, uint64) (bool, error)
 
@@ -128,6 +127,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			"membership": `CREATE TABLE IF NOT EXISTS membership (
     		conv_id INTEGER NOT NULL,
     		user_id INTEGER NOT NULL,
+    		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		UNIQUE (conv_id, user_id),
     		FOREIGN KEY (conv_id) REFERENCES conversation(id) ON DELETE CASCADE,
     		FOREIGN KEY (user_id) REFERENCES user(id))`,

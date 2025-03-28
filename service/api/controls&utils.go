@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"time"
 )
 
 // Check the authorization token provided whether is correct, missed, unknown
@@ -152,31 +151,10 @@ func (rt *_router) DeleteUserPhoto(oldPhoto string) error {
 }
 
 func (rt *_router) DeleteGroupPhoto(oldPhoto string) error {
-	filePath := filepath.Join("./uploads/groups", oldPhoto)
-	if err := os.Remove(filePath); err != nil {
+	if err := os.Remove(oldPhoto); err != nil {
 		return err
 	}
 	return nil
-}
-
-func (rt *_router) ScheduleConvDeleting(convID uint64, context reqcontext.RequestContext, w http.ResponseWriter) {
-	// Wait 3 minutes before deleting the conversation created
-	time.Sleep(3 * time.Minute)
-
-	// Query the database in order to check if there are messages
-	if hasMess, err := rt.db.ConvHasMessages(convID); err != nil {
-		context.Logger.WithError(err).Error("error during ConvHasMessages")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	} else if !hasMess {
-		if err = rt.db.DeleteConv(convID); err != nil {
-			context.Logger.WithError(err).Error("error during DeleteConv for group chat")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			context.Logger.Info("Deleted conversation done")
-			return
-		}
-	}
-	return
 }
 
 func (rt *_router) CreateUserDir(uID uint64, context reqcontext.RequestContext, w http.ResponseWriter) error {

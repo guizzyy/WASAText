@@ -227,6 +227,30 @@ paths:
         '404': {$ref: '#/components/responses/NotFound'}
         '500': {$ref: '#/components/responses/InternalServerError'}
 
+  /group/{convID}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationID'
+
+    get:
+      tags: ["groups"]
+      summary: get the group information
+      description: |
+        Retrieve all the info for the group information
+        such as members, name and photo
+      operationId: getGroupInfo
+      responses:
+        '200':
+          description: chat loaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+
+
   /conversations/{convID}/open:
     parameters:
       - $ref: '#/components/parameters/ConversationID'

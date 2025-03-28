@@ -33,12 +33,12 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 
 	conv, err := rt.db.GetConvByID(convID, id)
 	if err != nil {
-		context.Logger.WithError(err).Error("error during getConvByID db")
+		context.Logger.WithError(err).Error("error getting conv from db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if conv.Photo, err = rt.GetFile(conv.Photo); err != nil {
-		context.Logger.WithError(err).Error("error during GetFile in getConversation")
+		context.Logger.WithError(err).Error("error getting conv photo for getConversation")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -68,7 +68,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 
 	for i := range messages {
 		msg := &messages[i]
-		if msg.Status, err = rt.db.CheckStatus(msg.ID, msg.Sender.ID, len(members)-1); err != nil {
+		if msg.Status, err = rt.db.CheckStatus(msg.ID, msg.Sender.ID); err != nil {
 			context.Logger.WithError(err).Error("error during checkStatus")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

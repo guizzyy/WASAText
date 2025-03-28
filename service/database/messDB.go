@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"git.guizzyy.it/WASAText/service/utilities"
+	"time"
 )
 
 func (db *appdbimpl) GetMessageInfo(idMess uint64) (utilities.Message, error) {
@@ -92,6 +93,50 @@ func (db *appdbimpl) RemoveMessage(messId uint64, uID uint64) error {
 	return nil
 }
 
+func (db *appdbimpl) GetLastMessage(convID uint64, uID uint64) (utilities.Message, error) {
+	if isIn, err := db.IsConvInDatabase(convID); err != nil {
+		return utilities.Message{}, fmt.Errorf("error in checking if the conversation exists: %w", err)
+	} else if !isIn {
+		return utilities.Message{}, ErrConversationNotFound
+	}
+
+	var joinTimestamp time.Time
+	err := db.c.QueryRow(`SELECT timestamp FROM membership WHERE conv_id = ? AND user_id = ?`, convID, uID).Scan(&joinTimestamp)
+	if err != nil {
+		return utilities.Message{}, fmt.Errorf("error getting conversation membership timestamp: %w", err)
+	}
+
+	var msg utilities.Message
+	var msgPhoto sql.NullString
+	var senderId uint64
+	query := `SELECT
+    				m.id,
+					m.text,
+					m.photo,
+					m.conv_id,
+					m.sender_id,
+					m.timestamp
+    			FROM 
+    			    message AS m 
+    			WHERE
+    			    m.conv_id = ? AND
+    			    m.timestamp >= ?
+				ORDER BY 
+				    m.timestamp DESC
+				LIMIT 1`
+	err = db.c.QueryRow(query, convID, joinTimestamp).Scan(&msg.ID, &msg.Text, &msgPhoto, &msg.Conv, &senderId, &msg.Timestamp)
+	if errors.Is(err, sql.ErrNoRows) {
+		return utilities.Message{}, nil
+	} else if err != nil {
+		return utilities.Message{}, fmt.Errorf("error in getting last message info: %w", err)
+	}
+	if msg.Sender, err = db.GetUserByID(senderId); err != nil {
+		return utilities.Message{}, fmt.Errorf("error getting sender info: %w", err)
+	}
+	msg.Photo = msgPhoto.String
+	return msg, nil
+}
+
 func (db *appdbimpl) InsertStatus(receivers []uint64, idMess uint64, idConv uint64) (string, error) {
 	//	Iterate the array in order to set status for each receiver
 	var info string
@@ -122,20 +167,28 @@ func (db *appdbimpl) UpdateReceivedStatus(uID uint64) error {
 	return nil
 }
 
-func (db *appdbimpl) CheckStatus(mID uint64, sID uint64, nReceivers int) (string, error) {
+func (db *appdbimpl) CheckStatus(mID uint64, sID uint64) (string, error) {
+	var nReceivers int
+	queryRec := `SELECT COUNT(*) FROM membership AS ms
+                	WHERE ms.conv_id = (SELECT conv_id FROM message WHERE id = ?) AND
+                	      ms.timestamp <= (SELECT timestamp FROM message WHERE id = ?) AND
+                	      ms.user_id != ?`
+	err := db.c.QueryRow(queryRec, mID, mID, sID).Scan(&nReceivers)
+	if err != nil {
+		return "", fmt.Errorf("error getting receivers for a message: %w", err)
+	}
+
 	// Check the current status of the message for all the users
 	query := `SELECT
 					s.info, COUNT(*)
 				FROM
-				    status as s, message as m
+				    status AS s
 				WHERE
-				    m.id = s.mess_id AND
-				    m.sender_id = ? AND
-				    m.id = ?
+				    s.mess_id = ?
 				GROUP BY
 				    s.info
 				`
-	rows, err := db.c.Query(query, sID, mID)
+	rows, err := db.c.Query(query, mID)
 	if err != nil {
 		return "", fmt.Errorf("error checking status for message to receiver: %w", err)
 	}
@@ -156,12 +209,15 @@ func (db *appdbimpl) CheckStatus(mID uint64, sID uint64, nReceivers int) (string
 		statusCount[info] = count
 	}
 
+	// Handle missing status entries by assuming them as "Unreceived"
+	statusCount["Unreceived"] += nReceivers - (statusCount["Read"] + statusCount["Received"])
+
 	//	Check errors during the scanning of the rows
 	if err = rows.Err(); err != nil {
 		return "", fmt.Errorf("error in getting status in a conversation: %w", err)
 	}
 
-	if statusCount["Read"] == nReceivers {
+	if statusCount["Read"] >= nReceivers {
 		return "Read", nil
 	}
 	if statusCount["Unreceived"] > 0 {

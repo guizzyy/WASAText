@@ -29,11 +29,17 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, pa
 		return
 	}
 
-	// Get the images for each conversation
+	// Get the images and last message for each conversation
 	for i := range convs {
 		convs[i].Photo, err = rt.GetFile(convs[i].Photo)
 		if err != nil {
 			context.Logger.WithError(err).Error("error during GetFile in GetConversations")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		convs[i].LastMessage, err = rt.db.GetLastMessage(convs[i].ID, id)
+		if err != nil {
+			context.Logger.WithError(err).Error("error during GetLastMessage in GetConversations")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -16,7 +16,7 @@ func (rt *_router) Handler() http.Handler {
 	// Membership operations
 	rt.router.DELETE("/memberships/:convID/members/:uID", rt.wrap(rt.leaveGroup))
 	rt.router.POST("/memberships/:convID", rt.wrap(rt.addToGroup))
-	rt.router.GET("/memberships/:convID", rt.wrap(rt.getMembers))
+	rt.router.GET("/group/:convID", rt.wrap(rt.getGroupInfo))
 
 	// Message operations
 	rt.router.POST("/conversations/:convID/messages/:messID", rt.wrap(rt.forwardMessage))

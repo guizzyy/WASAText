@@ -5,41 +5,19 @@ import (
 	"errors"
 	"fmt"
 	"git.guizzyy.it/WASAText/service/utilities"
+	"time"
 )
 
 func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, error) {
 	//	Get info for the conversation in the homepage
-	query := `WITH lastMess AS (
-				SELECT 
-				    id AS mess_id,
-				    text,
-				    photo,
-				    conv_id,
-				    sender_id,
-				    timestamp
-				FROM
-				    message
-				WHERE
-				    timestamp = (SELECT MAX(timestamp) FROM message AS m2 WHERE m2.conv_id = message.conv_id)
-)
-				SELECT 
+	query := `SELECT DISTINCT
     				c.id,
-    				c.type,
-    				m.mess_id,
-    				m.text, 
-    				m.photo,
-    				m.timestamp as last_message_time,
-					u.id,
-					u.name
+    				c.type
 				FROM 
-				    conversation AS c, lastMess AS m, membership AS ms, user AS u 
+				    conversation AS c, membership AS ms  
 				WHERE 
-				    m.sender_id = u.id AND
-				    c.id = m.conv_id AND 
 				    c.id = ms.conv_id AND 
-				    ms.user_id = ? 
-				ORDER BY 
-				    last_message_time DESC`
+				    ms.user_id = ?`
 	rows, err := db.c.Query(query, uID)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting conversations for the homepage: %w", err)
@@ -48,10 +26,8 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 	//	Scan the rows to get conversation info and updating the status
 	var convs []utilities.Conversation
 	for rows.Next() {
-		var mess utilities.Message
-		var sender utilities.User
 		var conv utilities.Conversation
-		if err = rows.Scan(&conv.ID, &conv.Type, &mess.ID, &mess.Text, &mess.Photo, &mess.Timestamp, &sender.ID, &sender.Username); err != nil {
+		if err = rows.Scan(&conv.ID, &conv.Type); err != nil {
 			return nil, fmt.Errorf("error in scanning conversations for the homepage: %w", err)
 		}
 
@@ -65,9 +41,6 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 				return nil, fmt.Errorf("error in getting name, photo of group conversation for the homepage: %w", err)
 			}
 		}
-
-		mess.Sender = sender
-		conv.LastMessage = mess
 		convs = append(convs, conv)
 	}
 
@@ -98,8 +71,14 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64, lastID uint64) (
 		return nil, ErrUserNotInConversation
 	}
 
+	var joinTimestamp time.Time
+	err := db.c.QueryRow(`SELECT timestamp FROM membership WHERE conv_id = ? AND user_id = ?`, convID, uID).Scan(&joinTimestamp)
+	if err != nil {
+		return nil, fmt.Errorf("error getting conversation membership timestamp: %w", err)
+	}
+
 	//	Get all the messages for the given conversation
-	query := `SELECT
+	query := `SELECT DISTINCT
     				m.id,
     				m.text,
     				m.photo,
@@ -110,13 +89,14 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64, lastID uint64) (
     				u.name,
     				u.photo
 				FROM
-				    message AS m 
-				        JOIN user AS u ON u.id = m.sender_id
+				    message AS m, user AS u, membership AS ms 
 				WHERE
+				    u.id = m.sender_id AND
 				    m.conv_id = ? AND
-				    m.id > ?
+				    m.id > ? AND
+				    m.timestamp >= ?
 				ORDER BY m.timestamp DESC`
-	rows, err := db.c.Query(query, convID, lastID)
+	rows, err := db.c.Query(query, convID, lastID, joinTimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting messages in a conversation: %w", err)
 	}
@@ -519,23 +499,6 @@ func (db *appdbimpl) GetGroupConvInfo(convID uint64) (string, string, error) {
 	return group.Name, group.Photo, nil
 }
 
-func (db *appdbimpl) ConvHasMessages(convID uint64) (bool, error) {
-	// Check if the conv exists in the database
-	if isIn, err := db.IsConvInDatabase(convID); err != nil {
-		return false, fmt.Errorf("error checking if a conversation is in the database: %w", err)
-	} else if !isIn {
-		return false, fmt.Errorf("conversation is not in the database")
-	}
-
-	// Query the database to see if there is a message in the conversation
-	var count int
-	err := db.c.QueryRow(`SELECT COUNT(*) FROM message WHERE conv_id = ?`, convID).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("error checking if a conversation has messages: %w", err)
-	}
-	return count > 0, nil
-}
-
 func (db *appdbimpl) GetConvByID(convID uint64, uID uint64) (utilities.Conversation, error) {
 	// Check if the conversation exists in the database
 	if isIn, err := db.IsConvInDatabase(convID); err != nil {
@@ -564,12 +527,4 @@ func (db *appdbimpl) GetConvByID(convID uint64, uID uint64) (utilities.Conversat
 		}
 	}
 	return conv, nil
-}
-
-func (db *appdbimpl) DeleteConv(convID uint64) error {
-	_, err := db.c.Exec(`DELETE FROM conversation WHERE id = ?`, convID)
-	if err != nil {
-		return fmt.Errorf("error deleting conversation: %w", err)
-	}
-	return nil
 }

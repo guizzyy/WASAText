@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"git.guizzyy.it/WASAText/service/api/reqcontext"
 	"git.guizzyy.it/WASAText/service/utilities"
 	"github.com/julienschmidt/httprouter"
@@ -56,7 +57,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	filePath := gPhoto
+	filePath := fmt.Sprintf("./uploads/%s/%s", "groups", gPhoto)
 	dst, err := os.Create(filePath)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during create file path")

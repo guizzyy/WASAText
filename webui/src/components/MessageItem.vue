@@ -1,23 +1,61 @@
 <script>
 
 export default {
+  data: function () {
+    return {
+      showMessage: false,
+      showChat: false,
+    }
+  },
+
   props: {
     message: Object,
     myID: Number,
-    reactionOf: Number,
-    emojis: Array
   },
   computed: {
     formattedTimestamp() {
-      return new Date(this.message.timestamp).toLocaleDateString("it-IT", { hour: "numeric", minute: "numeric" });
+      return new Date(this.message.timestamp).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     }
-  }
+  },
+
+  methods: {
+    toggleMessage() {
+      this.showMessage = !this.showMessage;
+    },
+    toggleChatsSelect() {
+      this.showChat = !this.showChat;
+      this.$emit("updateShowChat", this.showChat);
+    },
+
+    async deleteMessage() {
+      try {
+        await this.$axios.delete(`conversations/${this.message.conv}/messages/${this.message.id}`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        });
+        this.$router.go(0);
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response.data;
+        } else if (e.response?.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
+    }
+  },
 }
 </script>
 
 <template>
   <div :class="{'my-mess': message.sender.id === myID, 'receiver-mess': message.sender.id !== myID}" class="mess-wrapper">
     <div class="mess-bubble">
+      <div v-if="message.is_forwarded" class="text-secondary fs-1"> forwarded </div>
       <div v-if="message.photo">
         <img :src="message.photo" alt="Message photo" class="mess-photo">
       </div>
@@ -37,13 +75,26 @@ export default {
       </div>
 
       <div class="mess-actions" :class="{'my-actions': message.sender.id === myID, 'receiver-actions': message.sender.id !== myID}">
-        <i class="action-icon fas fa-arrow-alt-circle-right" @click=""></i>
-        <i v-if="message.sender.id === myID" class="action-icon fas fa-solid fa-delete-left"></i>
+        <i class="action-icon fas fa-arrow-alt-circle-right" @click="toggleChatsSelect"></i>
+        <i v-if="message.sender.id === myID" class="action-icon fas fa-solid fa-delete-left" @click="toggleMessage"></i>
         <i class="action-icon fas fa-angry" @click=""></i>
-        <div v-if="reactionOf === message.id" class="emoji-list">
-          <span v-for="emoji in emojis" :key="emoji" @click="">{{ emoji }}</span>
+        <div v-if="false" class="emoji-list">
         </div>
       </div>
+    </div>
+  </div>
+  <div v-if="showMessage" class="overlay">
+    <div class="search-box text-black">
+      <strong>Are you sure you want to delete the message?</strong>
+      <button @click="deleteMessage"> Yes </button>
+      <button @click="toggleMessage"> No </button>
+    </div>
+  </div>
+
+  <div v-if="showChat" class="overlay" @click="toggleChatsSelect">
+    <div class="justify-content-center align-items-center">
+      <i class="fas fa-arrow-left"></i>
+      <strong class="w-50"> Choose where to forward the message </strong>
     </div>
   </div>
 </template>
@@ -159,7 +210,7 @@ export default {
 }
 
 .mess-photo {
-  max-width: 100%;
+  max-width: 50%;
   border-radius: 10px;
   margin-top: 5px;
 }
@@ -176,12 +227,4 @@ export default {
   font-size: 0.5rem;
   margin-left: 5px;
 }
-
-.check-mark.received {
-  color: #ccc;
-}
-.check-mark.read {
-  color: #4caf50;
-}
-
 </style>

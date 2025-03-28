@@ -8,12 +8,11 @@ export default {
   data: function() {
     return {
       error: null,
-      ID: sessionStorage.getItem("ID"),
+      ID: parseInt(sessionStorage.getItem("ID")),
       username: sessionStorage.getItem("username"),
       photo: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
       report: sessionStorage.getItem("report"),
-      convs: JSON.parse(sessionStorage.getItem("convs")) || [],
-      convID: null,
+      convs: {},
       newUser: "",
       searchResults: [],
       newConv: {},
@@ -32,6 +31,14 @@ export default {
       sessionStorage.removeItem("report");
       this.report = "";
     }, 3000);
+  },
+
+  computed: {
+    sortedConvs() {
+      return Object.values(this.convs).sort((a, b) => {
+        return new Date(b.last_message.timestamp) - new Date(a.last_message.timestamp);
+      });
+    }
   },
 
   methods: {
@@ -96,17 +103,21 @@ export default {
 
     async getConversations() {
       this.error = null;
-      this.showLoading = true;
       try {
         let response = await this.$axios.get("/conversations", {
           headers: {
             Authorization: sessionStorage.getItem("ID"),
           }
         });
-        this.convs = Array.isArray(response.data) ? response.data : [];
-        sessionStorage.setItem("convs", JSON.stringify(response.data));
+        let conversations = response.data;
+        if (!conversations || conversations.length === 0) {
+          this.convs = {};
+        } else {
+          conversations.forEach(conv => {
+            this.convs[conv.id] = conv;
+          })
+        }
       } catch (e) {
-        this.showLoading = false;
         if (e.response?.status === 400) {
           this.error = "Failed to get conversations.";
         } else if (e.response?.status === 404) {
@@ -119,8 +130,6 @@ export default {
         setTimeout(() => {
           this.error = null;
         }, 3000)
-      } finally {
-        this.showLoading = false;
       }
     },
 
@@ -137,8 +146,7 @@ export default {
             }
         )
         this.newConv = response.data;
-        this.convs.push(this.newConv);
-        sessionStorage.setItem("convs", JSON.stringify(this.convs));
+        this.convs[this.newConv.id] = this.newConv;
         this.$router.push({path: `/conversations/${this.newConv.id}`});
       } catch (e) {
         if (e.response?.status === 400) {
@@ -170,8 +178,7 @@ export default {
           }
         });
         this.newConv = response.data;
-        this.convs.push(this.newConv);
-        sessionStorage.setItem("convs", JSON.stringify(this.convs));
+        this.convs[this.newConv.id] = this.newConv;
         this.$router.push({path: `/conversations/${this.newConv.id}`})
       } catch (e) {
         if (e.response?.status === 400) {
@@ -230,19 +237,24 @@ export default {
         <div class="home-container">
           <h1> Chats </h1>
 
-          <p v-if="convs.length === 0">No conversation started yet...</p>
+          <p v-if="!convs || Object.keys(convs).length === 0">No conversation started yet...</p>
           <div v-else class="chat-container">
             <div class="chat-list">
-              <router-link v-for="conv in convs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat d-flex align-items-start gap-3 p-2">
+              <router-link v-for="(conv, _) in sortedConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat d-flex align-items-start gap-3 p-2">
                 <div class="chat-photo h-auto">
                   <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg' " alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
                 </div>
                 <div class="flex-grow-1">
                   <div class="d-flex justify-content-between">
                     <strong> {{ conv.name }} </strong>
-                    <small class="text-muted"> {{ new Date(conv.last_message.timestamp).toLocaleDateString("it-IT", {hour: "numeric", minute: "numeric"}) }} </small>
+                    <small v-if="conv.last_message.id" class="text-muted"> {{ new Date(conv.last_message.timestamp).toLocaleDateString("it-IT", {hour: "numeric", minute: "numeric"}) }} </small>
                   </div>
-                  <p class="text-muted text-truncate mb-0"> {{ conv.last_message.text }} </p>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="d-flex align-items-center flex-grow-1 text-truncate">
+                      <i v-if="conv.last_message.id && conv.last_message.photo" class="bi bi-camera-fill me-1"></i>
+                      <p class="text-muted text-truncate mb-0">{{ conv.last_message.id ? conv.last_message.text : "No messages sent yet..." }}</p>
+                    </span>
+                  </div>
                 </div>
               </router-link>
             </div>
@@ -342,27 +354,6 @@ export default {
 
 .chat-popup button:hover {
   background: #0a53a8;
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(5px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.search-box {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 30%;
-  text-align: center;
 }
 
 .search-box input {

@@ -12,17 +12,15 @@ export default {
       myID: parseInt(sessionStorage.getItem("ID")),
       myUsername: sessionStorage.getItem("username"),
       myPhoto: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
-      myConvs: JSON.parse(sessionStorage.getItem("convs")) || [],
+      barConvs: {},
       currConvID: this.$route.params.convID,
+      currConv: {},
       lastMessageIDs: {},
-      allConvMessages: {"": []},
-      currentConv: {},
+      allConvMessages: {},
       sentMessage: "",
       sentPhoto: null,
-      reactionOf: null,
-      emojis: [],
-      destinationConv: null,
 
+      showChat: false,
       sentPhotoPreview: null,
       selectedFile: null,
 
@@ -42,21 +40,38 @@ export default {
     },
   },
 
+  computed: {
+    sortedConvs() {
+      return Object.values(this.barConvs).sort((a, b) => {
+        return new Date(b.last_message.timestamp) - new Date(a.last_message.timestamp);
+      });
+    }
+  },
+
   methods: {
     logout() {
       sessionStorage.clear();
       this.$router.push({path: "/"});
     },
 
+    isNewDay(index) {
+      if (index === 0) return true;
+      let prevMess = this.allConvMessages[this.currConvID][index - 1];
+      let currMess = this.allConvMessages[this.currConvID][index];
+      return new Date(prevMess.timestamp).toDateString() !== new Date(currMess.timestamp).toDateString()
+    },
+
     onFileChange(event) {
       let file = event.target.files[0];
       if (file) {
         this.selectedFile = file;
-        this.sentPhoto = URL.createObjectURL(file)
+        this.sentPhoto = file;
+        this.sentPhotoPreview = URL.createObjectURL(file)
       }
     },
 
     removeSelectedFile() {
+      this.selectedFile = null;
       this.sentPhoto = null;
       this.sentPhotoPreview = null;
     },
@@ -70,44 +85,25 @@ export default {
       })
     },
 
-    toggleReactions(messID) {
-      this.reactionOf = this.reactionOf === messID ? null: messID;
+    handleChatClick(convID) {
+      if (this.showChat) {
+        this.forwardMessage(convID);
+        this.showChat = false;
+      } else {
+        this.$router.push({path: `/conversations/${convID}`});
+      }
     },
 
-    async commentMessage() {
-    },
-
-    async forwardMessage(messID) {
+    async forwardMessage(convID, messID) {
       try {
         this.error = null;
-        let response = this.$axios.post(`/conversations/${this.currConvID}/messages/${messID}`,
-            {id: this.destinationConv},
+        let response = await this.$axios.post(`/conversations/${this.currConvID}/messages/${messID}`,
+            {id: convID},
             {headers: {Authorization: sessionStorage.getItem("ID")}}
         );
-        this.$router.push({path: `/conversations/${this.destinationConv}/open`});
-        // to continue 
-      } catch (e) {
-        if (e.response?.status === 400) {
-          this.error = e.response;
-        } else if (e.response?.status === 500) {
-          this.error = e.response.data
-        } else {
-          this.error = e.toString();
-        }
-      }
-      setTimeout(() => {
-        this.error = null;
-      }, 2500)
-    },
-
-    async deleteMessage(messID) {
-      try {
-        this.error = null;
-        await this.$axios.delete(`/conversations/${this.currConvID}/messages/${messID}`, {
-          headers: {
-            Authorization: sessionStorage.getItem("ID")
-          }
-        })
+        this.allConvMessages[convID].push(response.data);
+        this.lastMessageIDs[convID] = response.data.id;
+        this.$router.push({path: `/conversations/${convID}`});
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response;
@@ -141,7 +137,9 @@ export default {
           }
         });
         this.allConvMessages[this.currConvID].push(response.data);
+        this.lastMessageIDs[this.currConvID] = response.data.id;
         this.sentMessage = "";
+        this.sentPhoto = "";
         this.removeSelectedFile();
         this.scrollToBottom();
       } catch (e) {
@@ -152,8 +150,6 @@ export default {
         } else {
           this.error = e.toString();
         }
-      } finally {
-        this.showLoading = false;
       }
       setTimeout(() => {
         this.error = null;
@@ -161,7 +157,6 @@ export default {
      },
 
     async getConversation(convID) {
-      this.showLoading = true;
       this.error = null;
       const lastID = this.lastMessageIDs[convID] || 0;
       try {
@@ -173,16 +168,19 @@ export default {
             Authorization: sessionStorage.getItem("ID")
           }
         });
-        this.currentConv = { ...response.data };
+        this.currConv = { ...response.data };
+        console.log(response.data.messages);
         let newMessages = Array.isArray(response.data.messages) ? response.data.messages.reverse() : [];
         if (newMessages.length > 0) {
           this.lastMessageIDs[convID] = newMessages[newMessages.length - 1].id;
           this.allConvMessages[convID].push(...newMessages);
         }
-        this.currentConv.messages = this.allConvMessages[convID];
-        if (this.currentConv.type === 'group') {
-          sessionStorage.setItem("currGroup", JSON.stringify(response.data));
-        }
+        this.currConv.messages = this.allConvMessages[convID];
+        this.barConvs = (await this.$axios.get(`/conversations`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        })).data;
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response.data;
@@ -191,8 +189,6 @@ export default {
         } else {
           this.error = e.toString();
         }
-      } finally {
-        this.showLoading = false;
       }
       setTimeout(() => {
         this.error = null;
@@ -229,11 +225,11 @@ export default {
         </div>
 
         <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-          <div v-if="!myConvs || myConvs.length === 0" class="d-flex justify-content-center align-items-center text-center">
+          <div v-if="!barConvs || Object.keys(barConvs).length === 0" class="d-flex justify-content-center align-items-center text-center">
             <p class="text-black">No conversation started yet...</p>
           </div>
           <div v-else class="chat-list h-100 d-flex flex-column">
-            <router-link v-for="conv in myConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2">
+            <router-link v-for="(conv, _) in sortedConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2" @click="handleChatClick(conv.id)">
               <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
               <span class="ms-3">{{ conv.name }}</span>
             </router-link>
@@ -241,12 +237,12 @@ export default {
         </nav>
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 position-relative">
-          <div v-if="currentConv" class="receiver-bar d-flex align-items-center px-3">
-            <img :src="currentConv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv Photo" class="rounded-circle me-3" width="50" height="50">
-            <router-link v-if="currentConv.type === 'group'" :to="'/conversations/' + currConvID + '/manage'" class="text-white text-decoration-none ">
-              <strong> {{ currentConv.name }} </strong>
+          <div v-if="currConv" class="receiver-bar d-flex align-items-center px-3">
+            <img :src="currConv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv Photo" class="rounded-circle me-3" width="50" height="50">
+            <router-link v-if="currConv.type === 'group'" :to="'/conversations/' + currConvID + '/manage'" class="text-white text-decoration-none ">
+              <strong> {{ currConv.name }} </strong>
             </router-link>
-            <strong v-else class="text-white">{{ currentConv.name }}</strong>
+            <strong v-else class="text-white">{{ currConv.name }}</strong>
           </div>
 
           <div class="home-messages">
@@ -254,25 +250,26 @@ export default {
 
             <div v-else class="chat-box">
               <div class="messages-list">
-                <MessageItem
-                    v-for="mess in allConvMessages[currConvID]"
-                    :key="mess.id"
-                    :message="mess"
-                    :myID="myID"
-                    :reactionOf="reactionOf"
-                    :emojis="emojis"
-                    @toggle-reactions="toggleReactions"
-                    @comment="commentMessage"
-                />
+                <template v-for="(mess, index) in allConvMessages[currConvID]" :key="mess.id">
+                  <div v-if="isNewDay(index)" class="text-lg-center fw-bold" style="color: gray; font-size: 14px; margin: 10px 0">
+                    <span class="bg-white" style="padding: 5px 10px; border-radius: 10px"> {{ new Date(mess.timestamp).toLocaleDateString("it-IT", {weekday: 'long', month: 'long', day: 'numeric'}) }} </span>
+                  </div>
+                  <MessageItem :message="mess" :myID="myID"/>
+                </template>
               </div>
             </div>
           </div>
 
           <div class="chat-input-box">
+            <div v-if="sentPhotoPreview" class="photo-preview d-flex align-items-center" style="gap: 10px; background: #f8f9fa; padding: 8px; border-radius: 10px; max-width: 250px">
+              <img :src="sentPhotoPreview" alt="Photo Preview" style="width: 50px; height: 50px; border-radius: 10px">
+              <button class="remove-btn bg-danger text-white border-0" style="padding: 5px; border-radius: 5px; cursor: pointer;" @click="removeSelectedFile">Remove</button>
+            </div>
+
             <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input" @keyup.enter="sendMessage" maxlength="250">
             <div class="position-absolute d-flex align-items-center cursor-pointer text-secondary attachment">
-              <input type="file" accept="image/*" @click="onFileChange" class="position-absolute w-100 h-100 file-input">
-              <i class="fas fa-paperclip fs-1 p-5"></i>
+              <input type="file" accept="image/*" @change="onFileChange" class="position-absolute w-100 h-100 file-input">
+              <i class="fas fa-paperclip fs-1 me-3"></i>
             </div>
             <button @click="sendMessage" class="send-button">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -381,7 +378,7 @@ export default {
 
 .attachment{
   position: absolute;
-  right: 50px;
+  right: 80px;
   display: flex;
   align-items: center;
   cursor: pointer;

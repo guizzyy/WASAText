@@ -11,10 +11,10 @@ export default {
       myID: parseInt(sessionStorage.getItem("ID")),
       myUsername: sessionStorage.getItem("username"),
       myPhoto: sessionStorage.getItem("photo") || "https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg",
-      currGroup: JSON.parse(sessionStorage.getItem("currGroup")),
-      currConvID: this.$route.params.convID,
-      searchResults: [],
+      currConvID: parseInt(this.$route.params.convID),
+      currGroup: {},
       members: [],
+      searchResults: [],
       newMember: "",
       newName: "",
       newPhoto: "",
@@ -22,14 +22,13 @@ export default {
 
       report: "",
       showUserSearch: false,
-      showLoading: false,
       showNameBar: false,
       showPhotoBar: false,
     }
   },
 
   mounted() {
-    this.getMembers();
+    this.fetchGroup();
   },
 
   methods: {
@@ -82,7 +81,6 @@ export default {
           headers: { Authorization: sessionStorage.getItem("ID") }
         });
         this.currGroup.name = this.newName;
-        sessionStorage.setItem("currGroup", JSON.stringify(this.currGroup))
         this.report = response.data.report;
         this.closeNameBar();
       } catch (e) {
@@ -114,7 +112,7 @@ export default {
             Authorization : sessionStorage.getItem("ID")
           }
         });
-        this.report = response.data.message;
+        this.report = response.data.report;
         this.currGroup.photo = response.data.photo
         this.closePhotoBar();
       } catch (e) {
@@ -132,15 +130,16 @@ export default {
       }, 2500)
     },
 
-    async getMembers() {
+    async fetchGroup() {
       try {
         this.error = null;
-        let response = await this.$axios.get(`memberships/${this.currConvID}`, {
+        let response = await this.$axios.get(`group/${this.currConvID}`, {
           headers: {
             Authorization: sessionStorage.getItem("ID")
           }
         });
-        this.members = response.data
+        this.currGroup = response.data;
+        this.members = response.data.members;
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response;
@@ -158,7 +157,6 @@ export default {
 
     async addToGroup(user) {
       this.error = null;
-      this.showLoading = true;
       try {
         let response = await this.$axios.post(`/memberships/${this.currConvID}`, {username: user.username}, {
           headers: {
@@ -166,7 +164,6 @@ export default {
           }
         });
         this.report = response.data.report;
-        await this.getMembers();
         this.closeSearchBar();
       } catch (e) {
         if (e.response?.status === 400) {
@@ -176,8 +173,6 @@ export default {
         } else {
           this.error = e.toString();
         }
-      } finally {
-        this.showLoading = false;
       }
       setTimeout(() => {
         this.error = null;
@@ -187,7 +182,6 @@ export default {
 
     async leaveGroup() {
       this.error = null;
-      this.showLoading = true;
       try {
         await this.$axios.delete(`/memberships/${this.currConvID}/members/${this.myID}`, {
           headers: {
@@ -203,8 +197,6 @@ export default {
         } else {
           this.error = e.toString();
         }
-      } finally {
-        this.showLoading = false;
       }
       setTimeout(() => {
         this.error = null;
@@ -215,7 +207,6 @@ export default {
       clearTimeout(this.searchTimeout);
       this.searchTimeout = setTimeout(async () => {
         this.error = null;
-        this.showLoading = true;
         if (this.newMember.length === 0) {
           this.searchResults = []
         }

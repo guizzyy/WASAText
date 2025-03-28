@@ -113,4 +113,25 @@ form {
 img {
   object-fit: cover;
 }
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.search-box {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 30%;
+  text-align: center;
+}
 </style>

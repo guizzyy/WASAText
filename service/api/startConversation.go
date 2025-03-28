@@ -69,9 +69,6 @@ func (rt *_router) startConversation(w http.ResponseWriter, r *http.Request, par
 		return
 	}
 
-	// Schedule the deletion of conversation if no messages are sent within 5 minutes
-	go rt.ScheduleConvDeleting(conv.ID, context, w)
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if err = json.NewEncoder(w).Encode(conv); err != nil {
