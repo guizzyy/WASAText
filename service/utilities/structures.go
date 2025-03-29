@@ -24,6 +24,7 @@ type Message struct {
 	IsForward bool      `json:"is_forwarded"`
 	Timestamp time.Time `json:"timestamp"`
 	Status    string    `json:"status"`
+	Reply     uint64    `json:"reply_to"`
 }
 
 type Reaction struct {

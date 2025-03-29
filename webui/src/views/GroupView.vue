@@ -164,6 +164,7 @@ export default {
           }
         });
         this.report = response.data.report;
+        await this.fetchGroup();
         this.closeSearchBar();
       } catch (e) {
         if (e.response?.status === 400) {

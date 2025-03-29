@@ -19,6 +19,8 @@ export default {
       allConvMessages: {},
       sentMessage: "",
       sentPhoto: null,
+      replyTo: 0,
+      messIDtoSent: "",
 
       showChat: false,
       sentPhotoPreview: null,
@@ -45,13 +47,18 @@ export default {
       return Object.values(this.barConvs).sort((a, b) => {
         return new Date(b.last_message.timestamp) - new Date(a.last_message.timestamp);
       });
-    }
+    },
   },
 
   methods: {
     logout() {
       sessionStorage.clear();
       this.$router.push({path: "/"});
+    },
+
+    handleShowChat({ showChat, messID }) {
+      this.showChat = showChat;
+      this.messIDtoSent = messID;
     },
 
     isNewDay(index) {
@@ -85,9 +92,9 @@ export default {
       })
     },
 
-    handleChatClick(convID) {
+    handleChatClick(convID, messID) {
       if (this.showChat) {
-        this.forwardMessage(convID);
+        this.forwardMessage(convID, messID);
         this.showChat = false;
       } else {
         this.$router.push({path: `/conversations/${convID}`});
@@ -97,13 +104,12 @@ export default {
     async forwardMessage(convID, messID) {
       try {
         this.error = null;
-        let response = await this.$axios.post(`/conversations/${this.currConvID}/messages/${messID}`,
+        await this.$axios.post(`/conversations/${this.currConvID}/messages/${messID}`,
             {id: convID},
             {headers: {Authorization: sessionStorage.getItem("ID")}}
         );
-        this.allConvMessages[convID].push(response.data);
-        this.lastMessageIDs[convID] = response.data.id;
         this.$router.push({path: `/conversations/${convID}`});
+        this.messIDtoSent = 0;
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response;
@@ -130,14 +136,17 @@ export default {
         if (this.sentMessage) {
           formData.append('text', this.sentMessage);
         }
+        if (this.replyTo) {
+          formData.append('reply', this.replyTo.id);
+        }
         let response = await this.$axios.post(`conversations/${this.currConvID}/messages`, formData, {
           headers: {
             Authorization: sessionStorage.getItem("ID"),
             "Content-type": "multipart/form-data"
           }
         });
-        this.allConvMessages[this.currConvID].push(response.data);
-        this.lastMessageIDs[this.currConvID] = response.data.id;
+        this.allConvMessages[this.currConvID].push(response.data.message);
+        this.lastMessageIDs[this.currConvID] = response.data.message.id;
         this.sentMessage = "";
         this.sentPhoto = "";
         this.removeSelectedFile();
@@ -169,7 +178,6 @@ export default {
           }
         });
         this.currConv = { ...response.data };
-        console.log(response.data.messages);
         let newMessages = Array.isArray(response.data.messages) ? response.data.messages.reverse() : [];
         if (newMessages.length > 0) {
           this.lastMessageIDs[convID] = newMessages[newMessages.length - 1].id;
@@ -181,6 +189,7 @@ export default {
             Authorization: sessionStorage.getItem("ID")
           }
         })).data;
+        this.scrollToBottom();
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response.data;
@@ -229,7 +238,7 @@ export default {
             <p class="text-black">No conversation started yet...</p>
           </div>
           <div v-else class="chat-list h-100 d-flex flex-column">
-            <router-link v-for="(conv, _) in sortedConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2" @click="handleChatClick(conv.id)">
+            <router-link v-for="(conv, _) in sortedConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2" @click="handleChatClick(conv.id, messIDtoSent)">
               <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
               <span class="ms-3">{{ conv.name }}</span>
             </router-link>
@@ -254,29 +263,39 @@ export default {
                   <div v-if="isNewDay(index)" class="text-lg-center fw-bold" style="color: gray; font-size: 14px; margin: 10px 0">
                     <span class="bg-white" style="padding: 5px 10px; border-radius: 10px"> {{ new Date(mess.timestamp).toLocaleDateString("it-IT", {weekday: 'long', month: 'long', day: 'numeric'}) }} </span>
                   </div>
-                  <MessageItem :message="mess" :myID="myID"/>
+                  <MessageItem :message="mess" :myID="myID" @updateShowChat="handleShowChat" @updateReplyMessage="handleReplyMess"/>
                 </template>
               </div>
             </div>
           </div>
 
-          <div class="chat-input-box">
-            <div v-if="sentPhotoPreview" class="photo-preview d-flex align-items-center" style="gap: 10px; background: #f8f9fa; padding: 8px; border-radius: 10px; max-width: 250px">
-              <img :src="sentPhotoPreview" alt="Photo Preview" style="width: 50px; height: 50px; border-radius: 10px">
-              <button class="remove-btn bg-danger text-white border-0" style="padding: 5px; border-radius: 5px; cursor: pointer;" @click="removeSelectedFile">Remove</button>
-            </div>
+          <div class="chat-input-container">
+            <div class="chat-input-box">
+              <div v-if="replyTo" class="d-flex justify-content-sm-between align-items-center" style="padding: 8px; border-radius: 10px; font-size: 14px">
+                <div class="d-flex align-items-center" style="gap: 5px;">
+                  <span style="color: gray">↩</span>
+                  <span v-if="replyTo.photo" class="fw-bold">📷 Photo</span>
+                  <span v-else class="text-black">{{ replyTo.text }}</span>
+                </div>
+                <button class="remove-reply-btn" style="background: none; border: none; cursor: pointer; font-size: 16px; color: red" @click="replyTo = null">✖</button>
+              </div>
+              <div v-if="sentPhotoPreview" class="photo-preview d-flex align-items-center" style="gap: 10px; background: #f8f9fa; padding: 8px; border-radius: 10px; max-width: 250px">
+                <img :src="sentPhotoPreview" alt="Photo Preview" class="preview-image">
+                <button class="remove-btn bg-danger text-white border-0" style="padding: 5px; border-radius: 5px; cursor: pointer;" @click="removeSelectedFile">Remove</button>
+              </div>
 
-            <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input" @keyup.enter="sendMessage" maxlength="250">
-            <div class="position-absolute d-flex align-items-center cursor-pointer text-secondary attachment">
-              <input type="file" accept="image/*" @change="onFileChange" class="position-absolute w-100 h-100 file-input">
-              <i class="fas fa-paperclip fs-1 me-3"></i>
+              <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input" @keyup.enter="sendMessage" maxlength="250">
+              <div class="position-absolute d-flex align-items-center cursor-pointer text-secondary attachment">
+                <input type="file" accept="image/*" @change="onFileChange" class="position-absolute w-100 h-100 file-input">
+                <i class="fas fa-paperclip fs-1 me-3"></i>
+              </div>
+              <button @click="sendMessage" class="send-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
             </div>
-            <button @click="sendMessage" class="send-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
           </div>
         </main>
       </div>
@@ -313,27 +332,29 @@ export default {
   max-height: 98%;
 }
 
-.chat-input-box {
-  height: 10%;
-  justify-content: flex-end;
+.chat-input-container {
+  width: 83%;
   position: fixed;
   bottom: 1em;
   right: 0;
-  width: 83%;
-  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.chat-input-box {
   display: flex;
   align-items: center;
   border-radius: 20px;
+  padding: 10px;
+  background: white;
 }
 
 .message-input {
-  height: 100%;
   flex-grow: 1;
-  padding: 10px 40px 10px 10px;
+  padding: 10px;
   border: 1px solid #ccc;
   border-radius: 20px;
-  outline: none;
-  position: relative;
 }
 
 .send-button {
@@ -376,13 +397,8 @@ export default {
   padding: 10px;
 }
 
-.attachment{
-  position: absolute;
-  right: 80px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  color: gray;
+.attachment {
+  margin-left: 10px;
 }
 
 .file-input {
@@ -402,6 +418,29 @@ export default {
 
 .attachment-wrapper:hover i {
   color: black;
+}
+
+.photo-preview {
+  display: flex;
+  gap: 10px;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 10px;
+}
+
+.preview-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+}
+
+.remove-btn {
+  background: red;
+  color: white;
+  border: none;
+  padding: 5px;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 </style>

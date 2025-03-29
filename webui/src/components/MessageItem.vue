@@ -3,8 +3,13 @@
 export default {
   data: function () {
     return {
+      emojis: [],
+      emojiOptions: ["😂", "👍", "🔥", "😡", "😭"],
+      showEmojiList: false,
+      showEmojiSelect: false,
       showMessage: false,
       showChat: false,
+      showMenu: false,
     }
   },
 
@@ -12,19 +17,45 @@ export default {
     message: Object,
     myID: Number,
   },
+
+  emits: ["updateShowChat", "updateReplyMessage"],
+
   computed: {
     formattedTimestamp() {
       return new Date(this.message.timestamp).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
     }
   },
 
+  mounted() {
+    this.getComments();
+  },
+
   methods: {
+    toggleEmojiSelect()  {
+      this.showEmojiSelect = !this.showEmojiSelect;
+      if (this.showMenu) this.showMenu = false;
+    },
+    toggleMenu() {
+      this.showMenu = !this.showMenu;
+
+    },
+    toggleReactionList() {
+      this.showEmojiList = !this.showEmojiList;
+      if (this.showMenu) this.showMenu = false;
+    },
     toggleMessage() {
       this.showMessage = !this.showMessage;
+      if (this.showMenu) this.showMenu = false;
     },
     toggleChatsSelect() {
       this.showChat = !this.showChat;
-      this.$emit("updateShowChat", this.showChat);
+      this.$emit("updateShowChat", {showChat: this.showChat, messID: this.message.id});
+      if (this.showMenu) this.showMenu = false;
+    },
+
+    toggleReplySelect(){
+      this.$emit("updateReplyMessage", {message: this.message})
+      if (this.showMenu) this.showMenu = false;
     },
 
     async deleteMessage() {
@@ -47,6 +78,76 @@ export default {
       setTimeout(() => {
         this.error = null;
       }, 2500)
+    },
+
+    async getComments() {
+      try {
+        let response = await this.$axios.get(`/conversations/${this.message.conv}/messages/${this.message.id}/reactions`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        });
+        this.emojis = response.data;
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response.data;
+        } else if (e.response?.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
+    },
+
+    async commentMessage(emoji) {
+      try {
+        this.error = null;
+        await this.$axios.put(`/conversations/${this.message.conv}/messages/${this.message.id}/reactions`, {emoji: emoji}, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        });
+        await this.getComments();
+        this.showEmojiSelect = false;
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response.data;
+        } else if (e.response?.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
+    },
+
+    async uncommentMessage() {
+      this.error = null;
+      try {
+        await this.$axios.delete(`conversations/${this.message.conv}/messages/${this.message.id}/reactions`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        });
+        await this.getComments();
+        this.toggleReactionList();
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response.data;
+        } else if (e.response?.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
     }
   },
 }
@@ -55,7 +156,10 @@ export default {
 <template>
   <div :class="{'my-mess': message.sender.id === myID, 'receiver-mess': message.sender.id !== myID}" class="mess-wrapper">
     <div class="mess-bubble">
-      <div v-if="message.is_forwarded" class="text-secondary fs-1"> forwarded </div>
+      <div v-if="message.is_forwarded" style="font-size: 10px; color: gray"> forwarded </div>
+      <div v-if="message.sender.id !== myID">
+        <strong>{{message.sender.username}}</strong>
+      </div>
       <div v-if="message.photo">
         <img :src="message.photo" alt="Message photo" class="mess-photo">
       </div>
@@ -74,27 +178,62 @@ export default {
         </span>
       </div>
 
-      <div class="mess-actions" :class="{'my-actions': message.sender.id === myID, 'receiver-actions': message.sender.id !== myID}">
-        <i class="action-icon fas fa-arrow-alt-circle-right" @click="toggleChatsSelect"></i>
-        <i v-if="message.sender.id === myID" class="action-icon fas fa-solid fa-delete-left" @click="toggleMessage"></i>
-        <i class="action-icon fas fa-angry" @click=""></i>
-        <div v-if="false" class="emoji-list">
+      <div class="menu-container position-absolute" style="top: 5px; right: 5px;">
+        <i class="menu-icon fas fa-ellipsis-v" @click="toggleMenu" style="cursor: pointer; color: white; font-size: 1.2rem;"></i>
+        <div v-if="showMenu" class="menu-popup">
+          <i class="action-icon fas fa-mail-reply" @click="toggleReplySelect" title="Reply"></i>
+          <i class="action-icon fas fa-mail-forward" @click="toggleChatsSelect" title="Forward"></i>
+          <i v-if="message.sender.id === myID" class="action-icon fas fa-trash" @click="toggleMessage" title="Delete"></i>
+          <i class="action-icon fas fa-angry" @click="toggleEmojiSelect" title="React"></i>
         </div>
       </div>
-    </div>
-  </div>
-  <div v-if="showMessage" class="overlay">
-    <div class="search-box text-black">
-      <strong>Are you sure you want to delete the message?</strong>
-      <button @click="deleteMessage"> Yes </button>
-      <button @click="toggleMessage"> No </button>
-    </div>
-  </div>
 
-  <div v-if="showChat" class="overlay" @click="toggleChatsSelect">
-    <div class="justify-content-center align-items-center">
-      <i class="fas fa-arrow-left"></i>
-      <strong class="w-50"> Choose where to forward the message </strong>
+      <div v-if="emojis && emojis.length > 0" class="reaction-box" :class="{'receiver-reaction': message.sender.id !== myID}" @click="toggleReactionList">
+        <span v-for="(emoji, index) in emojis.slice(0, 3)" :key="index" class="reaction-icon">
+          {{ emoji.emoji }}
+        </span>
+        <span v-if="emojis.length > 3" class="more-reactions">+{{ emojis.length - 3 }}</span>
+      </div>
+
+      <div v-if="showEmojiList" class="reaction-popup" :class="{'receiver-popup': message.sender.id !== myID}">
+        <div class="reaction-header">
+          <strong>Reactions</strong>
+          <button class="close-btn" @click="showEmojiList = false">✖</button>
+        </div>
+        <div class="reaction-content">
+          <div v-for="emoji in emojis" :key="emoji.emoji" class="reaction-item">
+            {{ emoji.emoji }} - {{ emoji.user.username }}
+            <button
+                v-if="emoji.user.id === myID"
+                class="delete-reaction-btn"
+                @click="uncommentMessage"
+            >
+              ❌
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="showEmojiSelect" class="emoji-picker">
+        <span v-for="emoji in emojiOptions" :key="emoji" class="emoji-choice" @click="commentMessage(emoji)">
+          {{ emoji }}
+        </span>
+      </div>
+    </div>
+
+    <div v-if="showMessage" class="overlay">
+      <div class="search-box text-black">
+        <strong>Are you sure you want to delete the message?</strong>
+        <button @click="deleteMessage"> Yes </button>
+        <button @click="toggleMessage"> No </button>
+      </div>
+    </div>
+
+    <div v-if="showChat" class="overlay" @click="toggleChatsSelect">
+      <div class="justify-content-center align-items-center">
+        <i class="fas fa-arrow-left"></i>
+        <strong class="w-50"> Choose where to forward the message </strong>
+      </div>
     </div>
   </div>
 </template>
@@ -163,31 +302,6 @@ export default {
   transform: translateY(-50%);
 }
 
-.mess-actions {
-  flex-direction: column;
-  position: absolute;
-  top: 50%;
-  display: flex;
-  gap: 5px;
-  opacity: 0;
-  transition: opacity 0.2s;
-  transform: translate(0, -50%);
-}
-
-.mess-bubble:hover .mess-actions {
-  opacity: 1;
-}
-
-.my-mess .mess-actions.my-actions {
-  right: 100%;
-  padding-right: 20px;
-}
-
-.receiver-mess .mess-actions.receiver-actions {
-  left: 100%;
-  padding-left: 20px;
-}
-
 .action-icon {
   cursor: pointer;
   font-size: 1.5rem;
@@ -195,18 +309,6 @@ export default {
   border-radius: 50%;
   padding: 4px;
   display: inline-block;
-}
-
-.emoji-list {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  display: flex;
-  gap: 5px;
-  background: white;
-  padding: 5px;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .mess-photo {
@@ -226,5 +328,118 @@ export default {
 .check-mark {
   font-size: 0.5rem;
   margin-left: 5px;
+}
+
+.menu-popup {
+  position: absolute;
+  top: 25px;
+  right: 0;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 10;
+}
+
+.menu-popup .action-icon {
+  font-size: 1.2rem;
+  color: white;
+  cursor: pointer;
+}
+
+.emoji-picker {
+  position: absolute;
+  bottom: 110%;
+  right: 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.emoji-choice {
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.emoji-choice:hover {
+  transform: scale(1.2);
+}
+
+.reaction-box {
+  position: absolute;
+  bottom: -5px;
+  left: 10px;
+  background: darkgray;
+  padding: 2px 8px;
+  border-radius: 15px;
+  cursor: pointer;
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 1rem;
+}
+.receiver-reaction {
+  left: auto;
+  right: 10px;
+}
+
+.reaction-popup {
+  position: absolute;
+  bottom: 30px;
+  left: 10px;
+  width: 220px;
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+  z-index: 10;
+  color: black;
+}
+.receiver-popup {
+  left: auto;
+  right: 10px;
+}
+.reaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+.reaction-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.reaction-item {
+  font-size: 1.2rem;
+  padding: 5px;
+  border-radius: 5px;
+}
+.reaction-item:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+.delete-reaction-btn {
+  margin-left: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: red;
+  font-size: 1rem;
+}
+.delete-reaction-btn:hover {
+  opacity: 0.7;
 }
 </style>

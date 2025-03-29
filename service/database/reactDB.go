@@ -59,8 +59,8 @@ func (db *appdbimpl) GetReactions(messId uint64) ([]utilities.Reaction, error) {
 	var reactions []utilities.Reaction
 	query := `SELECT 
 					r.reaction,
-					u.name,
-					u.photo
+					u.id,
+					u.name
 				FROM 
 				    reactions AS r, 
 				    user AS u
@@ -72,12 +72,13 @@ func (db *appdbimpl) GetReactions(messId uint64) ([]utilities.Reaction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error in getting reactions of the message: %w", err)
 	}
+	defer rows.Close()
 
 	//	Iterate the rows to save information in the array
 	for rows.Next() {
 		var reaction utilities.Reaction
 		var sender utilities.User
-		if err = rows.Scan(&reaction.Emoji, &sender.Username, &sender.Photo); err != nil {
+		if err = rows.Scan(&reaction.Emoji, &sender.ID, &sender.Username); err != nil {
 			return nil, fmt.Errorf("error in scanning reactions of the message: %w", err)
 		}
 		reaction.User = sender

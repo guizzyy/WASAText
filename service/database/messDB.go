@@ -18,11 +18,15 @@ func (db *appdbimpl) GetMessageInfo(idMess uint64) (utilities.Message, error) {
 
 	//	Retrieve the information about the message
 	var msg utilities.Message
-	err := db.c.QueryRow(`SELECT text, photo FROM message WHERE id = ?`, idMess).Scan(&msg.Text, &msg.Photo)
+	var sender uint64
+	err := db.c.QueryRow(`SELECT text, photo, sender_id FROM message WHERE id = ?`, idMess).Scan(&msg.Text, &msg.Photo, &sender)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return utilities.Message{}, ErrMessageNotFound
 		}
+		return utilities.Message{}, fmt.Errorf("error in getting message info: %w", err)
+	}
+	if msg.Sender, err = db.GetUserByID(sender); err != nil {
 		return utilities.Message{}, fmt.Errorf("error in getting message info: %w", err)
 	}
 	return msg, err

@@ -26,14 +26,8 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params
 
 	// Get the new conversation where forward the message to
 	var newConv utilities.Conversation
-	var strConv map[string]string
-	if err = json.NewDecoder(r.Body).Decode(&strConv); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&newConv); err != nil {
 		context.Logger.WithError(err).Error("json forward message decode error")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if newConv.ID, err = strconv.ParseUint(strConv["id"], 10, 64); err != nil {
-		context.Logger.WithError(err).Error("error in convert id conv from string to uint64")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
