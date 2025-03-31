@@ -16,7 +16,6 @@ func (rt *_router) Handler() http.Handler {
 	// Membership operations
 	rt.router.DELETE("/memberships/:convID/members/:uID", rt.wrap(rt.leaveGroup))
 	rt.router.POST("/memberships/:convID", rt.wrap(rt.addToGroup))
-	rt.router.GET("/group/:convID", rt.wrap(rt.getGroupInfo))
 
 	// Message operations
 	rt.router.POST("/conversations/:convID/messages/:messID", rt.wrap(rt.forwardMessage))
@@ -32,6 +31,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/conversations", rt.wrap(rt.getMyConversations))
 	rt.router.POST("/conversations", rt.wrap(rt.startConversation))
 	rt.router.POST("/group", rt.wrap(rt.createGroup))
+	rt.router.GET("/group/:convID", rt.wrap(rt.getGroupInfo))
 	rt.router.PUT("/conversations/:convID/manage/name", rt.wrap(rt.setGroupName))
 	rt.router.PUT("/conversations/:convID/manage/photo", rt.wrap(rt.setGroupPhoto))
 	rt.router.GET("/conversations/:convID/open", rt.wrap(rt.getConversation))

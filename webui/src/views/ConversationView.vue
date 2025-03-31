@@ -18,7 +18,7 @@ export default {
       allConvMessages: {},
       sentMessage: "",
       sentPhoto: null,
-      replyTo: 0,
+      replyTo: null,
       messIDtoSent: "",
 
       showChat: false,
@@ -58,6 +58,10 @@ export default {
     handleShowChat({ showChat, messID }) {
       this.showChat = showChat;
       this.messIDtoSent = messID;
+    },
+
+    handleReply(mess) {
+      this.replyTo = mess;
     },
 
     isNewDay(index) {
@@ -136,7 +140,7 @@ export default {
           formData.append('text', this.sentMessage);
         }
         if (this.replyTo) {
-          formData.append('reply', this.replyTo.id);
+          formData.append('reply', this.replyTo.message.id);
         }
         let response = await this.$axios.post(`conversations/${this.currConvID}/messages`, formData, {
           headers: {
@@ -148,8 +152,14 @@ export default {
         this.lastMessageIDs[this.currConvID] = response.data.id;
         this.sentMessage = "";
         this.sentPhoto = "";
+        this.replyTo = null;
         this.removeSelectedFile();
         this.scrollToBottom();
+        this.barConvs = (await this.$axios.get(`/conversations`, {
+          headers: {
+            Authorization: sessionStorage.getItem("ID")
+          }
+        })).data;
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response.data;
@@ -237,7 +247,7 @@ export default {
             <p class="text-black">No conversation started yet...</p>
           </div>
           <div v-else class="chat-list h-100 d-flex flex-column">
-            <router-link v-for="(conv, _) in sortedConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2" @click="handleChatClick(conv.id, messIDtoSent)">
+            <router-link v-for="(conv, index) in sortedConvs" :key="index" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2" @click="handleChatClick(conv.id, messIDtoSent)">
               <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
               <span class="ms-3">{{ conv.name }}</span>
             </router-link>
@@ -262,7 +272,7 @@ export default {
                   <div v-if="isNewDay(index)" class="text-lg-center fw-bold" style="color: gray; font-size: 14px; margin: 10px 0; display: flex; justify-content: center">
                     <span class="bg-white" style="padding: 5px 10px; border-radius: 10px"> {{ new Date(mess.timestamp).toLocaleDateString("it-IT", {weekday: 'long', month: 'long', day: 'numeric'}) }} </span>
                   </div>
-                  <MessageItem :message="mess" :myID="myID" @updateShowChat="handleShowChat"/>
+                  <MessageItem :message="mess" :myID="myID" @updateShowChat="handleShowChat" @updateReplyMessage="handleReply"/>
                 </template>
               </div>
             </div>
@@ -275,9 +285,9 @@ export default {
                 <div class="w-100 position-relative">
                   <div v-if="replyTo" class="bg-white d-flex justify-content-sm-between align-items-center position-absolute bottom-100" style="padding: 8px; border-radius: 10px 10px 0 0; font-size: 14px; left: 20px">
                     <div class="d-flex align-items-center" style="gap: 5px;">
-                      <span style="color: gray">↩</span>
-                      <span v-if="replyTo.photo" class="fw-bold">📷 Photo</span>
-                      <span v-else class="text-black">{{ replyTo.text }}</span>
+                      <strong style="color: black"> Reply to: </strong>
+                      <span v-if="replyTo.message.photo" class="fw-bold"> 📷 </span>
+                      <span v-if="replyTo.message.text" class="text-black">{{ replyTo.message.text }}</span>
                     </div>
                     <button class="remove-reply-btn" style="background: none; border: none; cursor: pointer; font-size: 16px; color: red" @click="replyTo = null">✖</button>
                   </div>
@@ -326,7 +336,7 @@ export default {
 .messages-list {
   display: flex;
   justify-content: flex-start;
-  height: auto;
+  height: 90%;
   flex-direction: column;
   overflow-y: auto;
   padding: 20px;

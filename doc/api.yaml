@@ -213,7 +213,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Group'
+              $ref: '#/components/schemas/Conversation'
         required: true
       responses:
         '201':
@@ -221,7 +221,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Group'
+                $ref: '#/components/schemas/Conversation'
         '400': {$ref: '#/components/responses/BadRequest'}
         '401': {$ref: '#/components/responses/Unauthorized'}
         '404': {$ref: '#/components/responses/NotFound'}
@@ -297,7 +297,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Group'
+              $ref: '#/components/schemas/Conversation'
         required: true
       responses:
         '200':
@@ -343,25 +343,6 @@ paths:
   /memberships/{convID}:
     parameters:
       - $ref: '#/components/parameters/ConversationID'
-
-    get:
-      tags: ["chats"]
-      summary: get a list of conversation members
-      description: |
-        Ask for a list of all the members in the conversation,
-        if private the list will have length 2
-      operationId: getMembers
-      responses:
-        '200':
-          description: list of members loaded successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/List-of-User'
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '500': { $ref: '#/components/responses/InternalServerError' }
 
     post:
       tags: ["groups"]
@@ -613,25 +594,6 @@ components:
         photo:
           $ref: '#/components/schemas/Photo'
 
-    Group:
-      description: group schema
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 11
-          readOnly: true
-          description: group ID
-        name:
-          type: string
-          example: Class
-          pattern: '^.*?$'
-          minLength: 3
-          maxLength: 16
-          description: group name
-        photo:
-          $ref: '#/components/schemas/Photo'
-
     Message:
       description: message schema
       type: object
@@ -667,8 +629,28 @@ components:
       description: conversation schema
       type: object
       properties:
+        id:
+          type: integer
+          example: 11
+          readOnly: true
+          description: conversation ID
+        name:
+          type: string
+          example: conv
+          pattern: '^.*?$'
+          minLength: 3
+          maxLength: 25
+          description: conversation name
+        class:
+          type: string
+          enum:
+            - "private"
+            - "group"
+          description: type of conversation
         messages:
           $ref: '#/components/schemas/List-of-Message'
+        members:
+          $ref: '#/components/schemas/List-of-User'
 
     Homepage:
       description: homepage schema
