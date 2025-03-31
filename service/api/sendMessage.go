@@ -73,11 +73,14 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 		return
 	}
 
-	mess.Reply, err = strconv.ParseUint(r.FormValue("reply"), 10, 64)
-	if err != nil {
-		context.Logger.WithError(err).Error("error in getting message reply for sendMessage")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	reply := r.FormValue("reply")
+	if reply != "" {
+		mess.Reply, err = strconv.ParseUint(reply, 10, 64)
+		if err != nil {
+			context.Logger.WithError(err).Error("error in getting message reply for sendMessage")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Get the conv id where to send the message from the path

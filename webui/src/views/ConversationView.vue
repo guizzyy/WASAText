@@ -1,11 +1,10 @@
 <script>
 import {RouterLink} from "vue-router";
 import ErrorMsg from "../components/ErrorMsg.vue";
-import NotificationMsg from "../components/NotificationMsg.vue";
 import MessageItem from "../components/MessageItem.vue";
 
 export default {
-  components: {NotificationMsg, RouterLink, ErrorMsg, MessageItem},
+  components: {RouterLink, ErrorMsg, MessageItem},
   data: function() {
     return {
       error: null,
@@ -145,8 +144,8 @@ export default {
             "Content-type": "multipart/form-data"
           }
         });
-        this.allConvMessages[this.currConvID].push(response.data.message);
-        this.lastMessageIDs[this.currConvID] = response.data.message.id;
+        this.allConvMessages[this.currConvID].push(response.data);
+        this.lastMessageIDs[this.currConvID] = response.data.id;
         this.sentMessage = "";
         this.sentPhoto = "";
         this.removeSelectedFile();
@@ -246,7 +245,7 @@ export default {
         </nav>
 
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 position-relative">
-          <div v-if="currConv" class="receiver-bar d-flex align-items-center px-3">
+          <div v-if="currConv" class="receiver-bar d-flex align-items-center px-3" style="z-index: 30">
             <img :src="currConv.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv Photo" class="rounded-circle me-3" width="50" height="50">
             <router-link v-if="currConv.type === 'group'" :to="'/conversations/' + currConvID + '/manage'" class="text-white text-decoration-none ">
               <strong> {{ currConv.name }} </strong>
@@ -260,43 +259,45 @@ export default {
             <div v-else class="chat-box">
               <div class="messages-list">
                 <template v-for="(mess, index) in allConvMessages[currConvID]" :key="mess.id">
-                  <div v-if="isNewDay(index)" class="text-lg-center fw-bold" style="color: gray; font-size: 14px; margin: 10px 0">
+                  <div v-if="isNewDay(index)" class="text-lg-center fw-bold" style="color: gray; font-size: 14px; margin: 10px 0; display: flex; justify-content: center">
                     <span class="bg-white" style="padding: 5px 10px; border-radius: 10px"> {{ new Date(mess.timestamp).toLocaleDateString("it-IT", {weekday: 'long', month: 'long', day: 'numeric'}) }} </span>
                   </div>
-                  <MessageItem :message="mess" :myID="myID" @updateShowChat="handleShowChat" @updateReplyMessage="handleReplyMess"/>
+                  <MessageItem :message="mess" :myID="myID" @updateShowChat="handleShowChat"/>
                 </template>
               </div>
             </div>
-          </div>
-
-          <div class="chat-input-container">
-            <div class="chat-input-box">
-              <div v-if="replyTo" class="d-flex justify-content-sm-between align-items-center" style="padding: 8px; border-radius: 10px; font-size: 14px">
-                <div class="d-flex align-items-center" style="gap: 5px;">
-                  <span style="color: gray">↩</span>
-                  <span v-if="replyTo.photo" class="fw-bold">📷 Photo</span>
-                  <span v-else class="text-black">{{ replyTo.text }}</span>
+            <div class="chat-input-container">
+              <div class="chat-input-box">
+                <div v-if="sentPhotoPreview" class="photo-preview d-flex align-items-center" style="gap: 10px; background: #f8f9fa; padding: 8px; border-radius: 10px; max-width: 250px">
+                  <img :src="sentPhotoPreview" alt="Photo Preview" class="preview-image">
+                  <button class="remove-btn bg-danger text-white border-0" style="padding: 5px; border-radius: 5px; cursor: pointer;" @click="removeSelectedFile">Remove</button>
                 </div>
-                <button class="remove-reply-btn" style="background: none; border: none; cursor: pointer; font-size: 16px; color: red" @click="replyTo = null">✖</button>
+                <div class="w-100 position-relative">
+                  <div v-if="replyTo" class="bg-white d-flex justify-content-sm-between align-items-center position-absolute bottom-100" style="padding: 8px; border-radius: 10px 10px 0 0; font-size: 14px; left: 20px">
+                    <div class="d-flex align-items-center" style="gap: 5px;">
+                      <span style="color: gray">↩</span>
+                      <span v-if="replyTo.photo" class="fw-bold">📷 Photo</span>
+                      <span v-else class="text-black">{{ replyTo.text }}</span>
+                    </div>
+                    <button class="remove-reply-btn" style="background: none; border: none; cursor: pointer; font-size: 16px; color: red" @click="replyTo = null">✖</button>
+                  </div>
+                  <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input w-100" @keyup.enter="sendMessage" maxlength="250">
+                  <div class="position-absolute d-flex align-items-center cursor-pointer text-secondary attachment">
+                    <input type="file" accept="image/*" @change="onFileChange" class="position-absolute w-100 h-100 file-input">
+                    <i class="fas fa-paperclip paper-clip"></i>
+                  </div>
+                </div>
+                <button @click="sendMessage" class="send-button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
               </div>
-              <div v-if="sentPhotoPreview" class="photo-preview d-flex align-items-center" style="gap: 10px; background: #f8f9fa; padding: 8px; border-radius: 10px; max-width: 250px">
-                <img :src="sentPhotoPreview" alt="Photo Preview" class="preview-image">
-                <button class="remove-btn bg-danger text-white border-0" style="padding: 5px; border-radius: 5px; cursor: pointer;" @click="removeSelectedFile">Remove</button>
-              </div>
-
-              <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input" @keyup.enter="sendMessage" maxlength="250">
-              <div class="position-absolute d-flex align-items-center cursor-pointer text-secondary attachment">
-                <input type="file" accept="image/*" @change="onFileChange" class="position-absolute w-100 h-100 file-input">
-                <i class="fas fa-paperclip fs-1 me-3"></i>
-              </div>
-              <button @click="sendMessage" class="send-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-              </button>
             </div>
           </div>
+
+
         </main>
       </div>
     </div>
@@ -308,10 +309,10 @@ export default {
 
 .home-messages {
   display: flex;
-  margin-top: 10px;
+  position: relative;
   flex-direction: column;
   overflow: hidden;
-  padding-top: 50px;
+  padding-top: 70px;
 }
 
 .chat-box{
@@ -333,10 +334,10 @@ export default {
 }
 
 .chat-input-container {
-  width: 83%;
-  position: fixed;
-  bottom: 1em;
-  right: 0;
+  width: 100%;
+  position: absolute;
+  bottom: -0.5em;
+  right: 0.25rem;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -347,7 +348,7 @@ export default {
   align-items: center;
   border-radius: 20px;
   padding: 10px;
-  background: white;
+  position: relative;
 }
 
 .message-input {
@@ -398,7 +399,9 @@ export default {
 }
 
 .attachment {
-  margin-left: 10px;
+  right: 10px;
+  top: 0;
+  height: 100%;
 }
 
 .file-input {
@@ -441,6 +444,10 @@ export default {
   padding: 5px;
   border-radius: 5px;
   cursor: pointer;
+}
+
+.paper-clip{
+  font-size: 21px;
 }
 
 </style>

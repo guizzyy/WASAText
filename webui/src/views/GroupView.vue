@@ -265,9 +265,9 @@ export default {
         </div>
       </div>
 
-      <div class="text-center position-absolute d-flex flex-column p-3 rounded-3"
+      <div class="text-center position-absolute d-flex flex-column p-3 rounded-3 gap-3"
            style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
-        <div class="d-flex align-items-center justify-content-between w-100 mb-3">
+        <div class="d-flex align-items-center justify-content-between w-100">
           <div class="d-flex align-items-center">
             <img :src="currGroup.photo || 'https://developer.jboss.org/images/jive-sgroup-default-portrait-large.png'"
                  alt="Profile pic" class="profile-pic-header me-3">
@@ -282,7 +282,7 @@ export default {
 
         <div class="member-list w-100">
           <ul>
-            <li v-for="member in members" :key="member.id" class="d-flex align-items-center mb-2 p-2">
+            <li v-for="member in members" :key="member.id" class="d-flex align-items-center p-2">
               <img :src="member.photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Profile pic" class="rounded-circle me-2" width="40" height="40">
               <strong class="text-black"> {{ member.username }} </strong>
             </li>
@@ -312,7 +312,7 @@ export default {
       <div class="search-box position-relative">
         <input v-model="newMember" @input="searchUsers" placeholder="Search for a user to add..." />
         <ul>
-          <li v-for="user in searchResults" :key="user.id" @click="addToGroup(user)">
+          <li class="mb-0" v-for="user in searchResults" :key="user.id" @click="addToGroup(user)">
             {{ user.username }}
           </li>
         </ul>
@@ -369,6 +369,7 @@ ul {
   height: 70vh;
   overflow-y: auto;
   border-radius: 10px;
+  border: 1px solid #ddd;
   background-color: #f9f9f9;
   width: auto;
   color: black;

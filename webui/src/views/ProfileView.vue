@@ -156,14 +156,14 @@ export default {
 
 
       <div class="w-100">
-        <button class="rounded-3 w-100 mb-1" @click="openPhotoBar">Change your profile image</button>
-        <button class="rounded-3 w-100 mb-2" @click="openUsernameBar">Change your username</button>
+        <button class="rounded-3 w-100 mb-1 edit-button" @click="openPhotoBar">Change your profile image</button>
+        <button class="rounded-3 w-100 mb-2 edit-button" @click="openUsernameBar">Change your username</button>
       </div>
 
       <div v-if="showUsernameBar" class="overlay">
         <div class="username-box position-relative">
           <input v-model="newUsername" placeholder="Enter a new username..." @keyup.enter="setMyUserName">
-          <button @click="closeUsernameBar">Cancel</button>
+          <button @click="closeUsernameBar" class="edit-button">Cancel</button>
         </div>
       </div>
 
@@ -174,8 +174,8 @@ export default {
             <img :src="this.newPhoto" alt="Preview" />
           </div>
           <input type="file" @change="onFileChange" accept="image/*" />
-          <button @click="setMyPhoto" :disabled="!selectedFile">Upload</button>
-          <button @click="closePhotoBar">Cancel</button>
+          <button @click="setMyPhoto" :disabled="!selectedFile" class="edit-button">Upload</button>
+          <button @click="closePhotoBar" class="edit-button">Cancel</button>
         </div>
       </div>
     </div>
@@ -240,10 +240,10 @@ export default {
   background-color: black;
 }
 
-button {
+.edit-button {
   margin: 5px;
   padding: 8px 15px;
-  border: none;
+  border: none !important;
   cursor: pointer;
 }
 

@@ -214,7 +214,7 @@ export default {
         </div>
       </div>
 
-      <div v-if="showEmojiSelect" class="emoji-picker">
+      <div v-if="showEmojiSelect" :class="{'emoji-picker': message.sender.id === myID, 'receiver-emoji-picker': message.sender.id !== myID}">
         <span v-for="emoji in emojiOptions" :key="emoji" class="emoji-choice" @click="commentMessage(emoji)">
           {{ emoji }}
         </span>
@@ -256,12 +256,12 @@ export default {
 }
 
 .mess-bubble {
-  padding: 10px 15px;
+  padding: 12px 15px;
   border-radius: 15px;
   font-size: 16px;
   position: relative;
   word-wrap: break-word;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .my-mess .mess-bubble {
@@ -355,7 +355,20 @@ export default {
   right: 0;
   background: white;
   border-radius: 10px;
-  box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  display: flex;
+  gap: 10px;
+  z-index: 10;
+}
+
+.receiver-emoji-picker {
+  position: absolute;
+  bottom: 110%;
+  left: 0;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   padding: 10px;
   display: flex;
   gap: 10px;
@@ -374,7 +387,8 @@ export default {
 
 .reaction-box {
   position: absolute;
-  bottom: -5px;
+  bottom: 0;
+  transform: translate(0, 50%);
   left: 10px;
   background: darkgray;
   padding: 2px 8px;
@@ -402,8 +416,7 @@ export default {
   color: black;
 }
 .receiver-popup {
-  left: auto;
-  right: 10px;
+  left: 10px;
 }
 .reaction-header {
   display: flex;
