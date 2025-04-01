@@ -16,15 +16,17 @@ type User struct {
 }
 
 type Message struct {
-	ID        uint64    `json:"id"`
-	Text      string    `json:"text"`
-	Photo     string    `json:"photo"`
-	Conv      uint64    `json:"conv"`
-	Sender    User      `json:"sender"`
-	IsForward bool      `json:"is_forwarded"`
-	Timestamp time.Time `json:"timestamp"`
-	Status    string    `json:"status"`
-	Reply     uint64    `json:"reply_to"`
+	ID         uint64    `json:"id"`
+	Text       string    `json:"text"`
+	Photo      string    `json:"photo"`
+	Conv       uint64    `json:"conv"`
+	Sender     User      `json:"sender"`
+	IsForward  bool      `json:"is_forwarded"`
+	Timestamp  time.Time `json:"timestamp"`
+	Status     string    `json:"status"`
+	ReplyID    uint64    `json:"reply_id"`
+	ReplyText  string    `json:"reply_text"`
+	ReplyPhoto string    `json:"reply_photo"`
 }
 
 type Reaction struct {

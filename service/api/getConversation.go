@@ -78,6 +78,16 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if msg.ReplyID != 0 {
+			messReply, err := rt.db.GetMessageInfo(msg.ReplyID)
+			if err != nil {
+				context.Logger.WithError(err).Error("error during GetMessageInfo for getConversation")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			msg.ReplyText = messReply.Text
+			msg.ReplyPhoto = messReply.Photo
+		}
 	}
 
 	for i := range members {

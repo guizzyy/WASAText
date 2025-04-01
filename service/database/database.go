@@ -138,6 +138,7 @@ func New(db *sql.DB) (AppDatabase, error) {
     		photo TEXT DEFAULT NULL,
     		conv_id INTEGER NOT NULL,
     		sender_id INTEGER NOT NULL,
+    		reply_to INTEGER NOT NULL DEFAULT 0,
     		is_forwarded BOOLEAN NOT NULL DEFAULT FALSE,
     		timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     		FOREIGN KEY (conv_id) REFERENCES conversation(id) ON DELETE CASCADE,

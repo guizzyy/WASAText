@@ -170,11 +170,7 @@ export default {
           }
         });
         this.currConv = { ...response.data };
-        let newMessages = Array.isArray(response.data.messages) ? response.data.messages.reverse() : [];
-        if (newMessages.length > 0) {
-          this.allConvMessages[convID].push(...newMessages);
-        }
-        this.currConv.messages = this.allConvMessages[convID];
+        this.allConvMessages[this.currConvID] = Array.isArray(response.data.messages) ? response.data.messages.reverse() : []
         this.barConvs = (await this.$axios.get(`/conversations`, {
           headers: {
             Authorization: sessionStorage.getItem("ID")

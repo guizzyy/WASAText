@@ -54,7 +54,7 @@ func (db *appdbimpl) AddMessage(mess *utilities.Message) error {
 			return fmt.Errorf("error adding forwarded message to database: %w", err)
 		}
 	} else {
-		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id) VALUES (?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender.ID).Scan(&mess.ID, &mess.Timestamp)
+		err := db.c.QueryRow(`INSERT INTO message (text, photo, conv_id, sender_id, reply_to) VALUES (?, ?, ?, ?, ?) RETURNING id, timestamp`, mess.Text, mess.Photo, mess.Conv, mess.Sender.ID, mess.ReplyID).Scan(&mess.ID, &mess.Timestamp)
 		if err != nil {
 			return fmt.Errorf("error adding message to database: %w", err)
 		}

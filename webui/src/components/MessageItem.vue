@@ -216,9 +216,10 @@ export default {
 <template>
   <div :class="{'my-mess': message.sender.id === myID, 'receiver-mess': message.sender.id !== myID}" class="mess-wrapper">
     <div class="mess-bubble">
-      <div v-if="message.reply_to">
+      <div v-if="message.reply_photo || message.reply_text" class="flex-lg-row">
         <strong> Reply to: </strong>
-        <p> Message replied </p>
+        <i v-if="message.reply_photo" class="fas fa-camera"></i>
+        <p v-if="message.reply_text"> {{ message.reply_text }} </p>
       </div>
       <div v-if="message.is_forwarded" style="font-size: 10px; color: black"> forwarded </div>
       <div v-if="message.sender.id !== myID">

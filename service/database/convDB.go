@@ -85,6 +85,7 @@ func (db *appdbimpl) GetConversation(conv utilities.Conversation, uID uint64) ([
     				m.text,
     				m.photo,
     				m.conv_id,
+    				m.reply_to,
     				m.is_forwarded,
     				m.timestamp,
     				u.id,
@@ -109,7 +110,7 @@ func (db *appdbimpl) GetConversation(conv utilities.Conversation, uID uint64) ([
 		var m utilities.Message
 		var sender utilities.User
 		var senderPhoto sql.NullString
-		if err = rows.Scan(&m.ID, &m.Text, &m.Photo, &m.Conv, &m.IsForward, &m.Timestamp, &sender.ID, &sender.Username, &senderPhoto); err != nil {
+		if err = rows.Scan(&m.ID, &m.Text, &m.Photo, &m.Conv, &m.ReplyID, &m.IsForward, &m.Timestamp, &sender.ID, &sender.Username, &senderPhoto); err != nil {
 			return nil, fmt.Errorf("error in scanning messages in a conversation: %w", err)
 		}
 		sender.Photo = senderPhoto.String
