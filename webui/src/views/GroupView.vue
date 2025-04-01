@@ -387,4 +387,20 @@ ul {
   color: black;
   font-family: inherit;
 }
+
+.photo-box {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  color: black;
+}
+
+.image-preview img {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
 </style>

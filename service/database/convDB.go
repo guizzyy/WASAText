@@ -56,25 +56,27 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 	return convs, nil
 }
 
-func (db *appdbimpl) GetConversation(convID uint64, uID uint64, lastID uint64) ([]utilities.Message, error) {
+func (db *appdbimpl) GetConversation(conv utilities.Conversation, uID uint64, lastID uint64) ([]utilities.Message, error) {
 	//	Check if the conversation is in the database
-	if exists, err := db.IsConvInDatabase(convID); err != nil {
+	if exists, err := db.IsConvInDatabase(conv.ID); err != nil {
 		return nil, fmt.Errorf("error checking if conversation is in database: %w", err)
 	} else if !exists {
 		return nil, ErrConversationNotFound
 	}
 
 	//	Check if the user is in the conversation
-	if isIn, err := db.IsUserInConv(convID, uID); err != nil {
+	if isIn, err := db.IsUserInConv(conv.ID, uID); err != nil {
 		return nil, fmt.Errorf("error checking if user is in conversation: %w", err)
 	} else if !isIn {
 		return nil, ErrUserNotInConversation
 	}
 
 	var joinTimestamp time.Time
-	err := db.c.QueryRow(`SELECT timestamp FROM membership WHERE conv_id = ? AND user_id = ?`, convID, uID).Scan(&joinTimestamp)
-	if err != nil {
-		return nil, fmt.Errorf("error getting conversation membership timestamp: %w", err)
+	if conv.Type == "group" {
+		err := db.c.QueryRow(`SELECT timestamp FROM membership WHERE conv_id = ? AND user_id = ?`, conv.ID, uID).Scan(&joinTimestamp)
+		if err != nil {
+			return nil, fmt.Errorf("error getting conversation membership timestamp: %w", err)
+		}
 	}
 
 	//	Get all the messages for the given conversation
@@ -96,7 +98,7 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64, lastID uint64) (
 				    m.id > ? AND
 				    m.timestamp >= ?
 				ORDER BY m.timestamp DESC`
-	rows, err := db.c.Query(query, convID, lastID, joinTimestamp)
+	rows, err := db.c.Query(query, conv.ID, lastID, joinTimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting messages in a conversation: %w", err)
 	}
@@ -122,7 +124,7 @@ func (db *appdbimpl) GetConversation(convID uint64, uID uint64, lastID uint64) (
 	}
 
 	//	Update the status of the messages in the database
-	if err = db.UpdateReadStatus(convID, uID); err != nil {
+	if err = db.UpdateReadStatus(conv.ID, uID); err != nil {
 		return nil, fmt.Errorf("error in updating read status: %w", err)
 	}
 	return messages, nil

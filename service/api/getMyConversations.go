@@ -37,7 +37,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, pa
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		convs[i].LastMessage, err = rt.db.GetLastMessage(convs[i].ID, id)
+		convs[i].LastMessage, err = rt.db.GetLastMessage(convs[i], id)
 		if err != nil {
 			context.Logger.WithError(err).Error("error during GetLastMessage in GetConversations")
 			http.Error(w, err.Error(), http.StatusInternalServerError)

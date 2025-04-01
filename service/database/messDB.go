@@ -97,17 +97,19 @@ func (db *appdbimpl) RemoveMessage(messId uint64, uID uint64) error {
 	return nil
 }
 
-func (db *appdbimpl) GetLastMessage(convID uint64, uID uint64) (utilities.Message, error) {
-	if isIn, err := db.IsConvInDatabase(convID); err != nil {
+func (db *appdbimpl) GetLastMessage(conv utilities.Conversation, uID uint64) (utilities.Message, error) {
+	if isIn, err := db.IsConvInDatabase(conv.ID); err != nil {
 		return utilities.Message{}, fmt.Errorf("error in checking if the conversation exists: %w", err)
 	} else if !isIn {
 		return utilities.Message{}, ErrConversationNotFound
 	}
 
 	var joinTimestamp time.Time
-	err := db.c.QueryRow(`SELECT timestamp FROM membership WHERE conv_id = ? AND user_id = ?`, convID, uID).Scan(&joinTimestamp)
-	if err != nil {
-		return utilities.Message{}, fmt.Errorf("error getting conversation membership timestamp: %w", err)
+	if conv.Type == "group" {
+		err := db.c.QueryRow(`SELECT timestamp FROM membership WHERE conv_id = ? AND user_id = ?`, conv.ID, uID).Scan(&joinTimestamp)
+		if err != nil {
+			return utilities.Message{}, fmt.Errorf("error getting conversation membership timestamp: %w", err)
+		}
 	}
 
 	var msg utilities.Message
@@ -128,7 +130,7 @@ func (db *appdbimpl) GetLastMessage(convID uint64, uID uint64) (utilities.Messag
 				ORDER BY 
 				    m.timestamp DESC
 				LIMIT 1`
-	err = db.c.QueryRow(query, convID, joinTimestamp).Scan(&msg.ID, &msg.Text, &msgPhoto, &msg.Conv, &senderId, &msg.Timestamp)
+	err := db.c.QueryRow(query, conv.ID, joinTimestamp).Scan(&msg.ID, &msg.Text, &msgPhoto, &msg.Conv, &senderId, &msg.Timestamp)
 	if errors.Is(err, sql.ErrNoRows) {
 		return utilities.Message{}, nil
 	} else if err != nil {

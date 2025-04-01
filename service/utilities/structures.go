@@ -61,3 +61,8 @@ type ConvResponse struct {
 	Messages []Message `json:"messages"`
 	Members  []User    `json:"members"`
 }
+
+type ForwardResponse struct {
+	Message Message `json:"message"`
+	Report  string  `json:"report"`
+}

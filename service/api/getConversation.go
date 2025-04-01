@@ -51,7 +51,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, param
 	}
 
 	// Query the database to retrieve all messages for the conversation
-	messages, err := rt.db.GetConversation(convID, id, lastMessageID)
+	messages, err := rt.db.GetConversation(conv, id, lastMessageID)
 	if err != nil {
 		context.Logger.WithError(err).Error("error during getConversation db")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

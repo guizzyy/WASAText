@@ -5,11 +5,15 @@ export default {
     return {
       emojis: [],
       emojiOptions: ["😂", "👍", "🔥", "😡", "😭"],
+      newUser: null,
+      searchResults: [],
+
+      showUserSearch: false,
       showEmojiList: false,
       showEmojiSelect: false,
       showMessage: false,
-      showChat: false,
       showMenu: false,
+      isForwarded: false,
     }
   },
 
@@ -18,7 +22,7 @@ export default {
     myID: Number,
   },
 
-  emits: ["updateShowChat", "updateReplyMessage"],
+  emits: ["updateReplyMessage", "updateForward"],
 
   computed: {
     formattedTimestamp() {
@@ -37,7 +41,6 @@ export default {
     },
     toggleMenu() {
       this.showMenu = !this.showMenu;
-
     },
     toggleReactionList() {
       this.showEmojiList = !this.showEmojiList;
@@ -47,15 +50,43 @@ export default {
       this.showMessage = !this.showMessage;
       if (this.showMenu) this.showMenu = false;
     },
-    toggleChatsSelect() {
-      this.showChat = !this.showChat;
-      this.$emit("updateShowChat", {showChat: this.showChat, messID: this.message.id});
+    toggleForward() {
+      this.showUserSearch = true;
       if (this.showMenu) this.showMenu = false;
     },
-
-    toggleReplySelect(){
+    toggleReplySelect() {
       this.$emit("updateReplyMessage", {message: this.message})
       if (this.showMenu) this.showMenu = false;
+    },
+    closeSearchBar() {
+      this.showUserSearch = false;
+    },
+
+    async forwardMessage(username) {
+      try {
+        this.error = null;
+        let response = await this.$axios.post(`/conversations/${this.message.conv}/messages/${this.message.id}`,
+            {username: username},
+            {headers: {Authorization: sessionStorage.getItem("ID")}}
+        );
+        let newMess = response.data.message
+        let report = response.data.report
+        this.showUserSearch = false;
+        this.newUser = null;
+        this.$emit("updateForward", {feedback: report})
+        this.$router.push({path: `/conversations/${newMess.conv}`})
+      } catch (e) {
+        if (e.response?.status === 400) {
+          this.error = e.response;
+        } else if (e.response?.status === 500) {
+          this.error = e.response.data
+        } else {
+          this.error = e.toString();
+        }
+      }
+      setTimeout(() => {
+        this.error = null;
+      }, 2500)
     },
 
     async deleteMessage() {
@@ -148,7 +179,36 @@ export default {
       setTimeout(() => {
         this.error = null;
       }, 2500)
-    }
+    },
+
+    async searchUsers() {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(async () => {
+        this.error = null;
+        if (this.newUser.length === 0) {
+          this.searchResults = []
+        }
+        try {
+          let response = await this.$axios.get(`/users/${this.myID}/search?username=${this.newUser}`, {
+            headers: {
+              Authorization: sessionStorage.getItem("ID")
+            }
+          });
+          this.searchResults = response.data;
+        } catch (e) {
+          if (e.response?.status === 400) {
+            this.error = e.response.data;
+          } else if (e.response?.status === 500) {
+            this.error = e.response.data
+          } else {
+            this.error = e.toString();
+          }
+        }
+        setTimeout(() => {
+          this.error = null;
+        }, 2500)
+      }, 300);
+    },
   },
 }
 </script>
@@ -156,7 +216,11 @@ export default {
 <template>
   <div :class="{'my-mess': message.sender.id === myID, 'receiver-mess': message.sender.id !== myID}" class="mess-wrapper">
     <div class="mess-bubble">
-      <div v-if="message.is_forwarded" style="font-size: 10px; color: gray"> forwarded </div>
+      <div v-if="message.reply_to">
+        <strong> Reply to: </strong>
+        <p> Message replied </p>
+      </div>
+      <div v-if="message.is_forwarded" style="font-size: 10px; color: black"> forwarded </div>
       <div v-if="message.sender.id !== myID">
         <strong>{{message.sender.username}}</strong>
       </div>
@@ -182,7 +246,7 @@ export default {
         <i class="menu-icon fas fa-ellipsis-v" @click="toggleMenu" style="cursor: pointer; color: white; font-size: 1.2rem;"></i>
         <div v-if="showMenu" class="menu-popup">
           <i class="action-icon fas fa-mail-reply" @click="toggleReplySelect" title="Reply"></i>
-          <i class="action-icon fas fa-mail-forward" @click="toggleChatsSelect" title="Forward"></i>
+          <i class="action-icon fas fa-paper-plane" @click="toggleForward" title="Forward"></i>
           <i v-if="message.sender.id === myID" class="action-icon fas fa-trash" @click="toggleMessage" title="Delete"></i>
           <i class="action-icon fas fa-angry" @click="toggleEmojiSelect" title="React"></i>
         </div>
@@ -229,10 +293,15 @@ export default {
       </div>
     </div>
 
-    <div v-if="showChat" class="overlay" @click="toggleChatsSelect">
-      <div class="justify-content-center align-items-center">
-        <i class="fas fa-arrow-left"></i>
-        <strong class="w-50"> Choose where to forward the message </strong>
+    <div v-if="showUserSearch" class="overlay">
+      <div class="search-box position-relative">
+        <input v-model="newUser" @input="searchUsers" placeholder="Forward the message to..." />
+        <ul>
+          <li v-for="user in searchResults" :key="user.id" @click="forwardMessage(user.username)">
+            {{ user.username }}
+          </li>
+        </ul>
+        <button @click="closeSearchBar">Cancel</button>
       </div>
     </div>
   </div>
@@ -332,15 +401,16 @@ export default {
 
 .menu-popup {
   position: absolute;
-  top: 25px;
+  top: 0;
   right: 0;
   background: rgba(0, 0, 0, 0.8);
   border-radius: 5px;
   padding: 5px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 5px;
   z-index: 10;
+  transform: translate(0, -100%);
 }
 
 .menu-popup .action-icon {

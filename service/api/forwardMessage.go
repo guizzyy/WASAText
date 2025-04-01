@@ -25,10 +25,23 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params
 	}
 
 	// Get the new conversation where forward the message to
-	var newConv utilities.Conversation
-	if err = json.NewDecoder(r.Body).Decode(&newConv); err != nil {
+	var receiver utilities.User
+	var user utilities.User
+	pRec := &receiver
+	if err = json.NewDecoder(r.Body).Decode(&receiver); err != nil {
 		context.Logger.WithError(err).Error("json forward message decode error")
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err = rt.db.GetUserByUsername(pRec); err != nil {
+		context.Logger.WithError(err).Error("error in getting user by username error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user, err = rt.db.GetUserByID(id)
+	if err != nil {
+		context.Logger.WithError(err).Error("error during GetUserByID db")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -86,14 +99,16 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params
 		return
 	}
 
-	// Add the forwarded message as a new message in the database
-	msg.Sender, err = rt.db.GetUserByID(id)
+	// Check if the user has a conversation open
+	newConv, err := rt.db.CreatePrivConv(user, receiver)
 	if err != nil {
-		context.Logger.WithError(err).Error("error during GetUserByID db")
+		context.Logger.WithError(err).Error("error during CreatePrivConv for forward message")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	msg.Conv = newConv.ID
+	msg.Sender = user
 	msg.IsForward = true
 	pMess := &msg
 	if err = rt.db.AddMessage(pMess); err != nil {
@@ -102,9 +117,14 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, params
 		return
 	}
 
+	response := utilities.ForwardResponse{
+		Message: msg,
+		Report:  "Message forwarded to " + receiver.Username,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err = json.NewEncoder(w).Encode(msg); err != nil {
+	if err = json.NewEncoder(w).Encode(response); err != nil {
 		context.Logger.WithError(err).Error("json forward message encode error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

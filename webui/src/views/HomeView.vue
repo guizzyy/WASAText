@@ -240,7 +240,7 @@ export default {
           <p v-if="!convs || Object.keys(convs).length === 0">No conversation started yet...</p>
           <div v-else class="chat-container">
             <div class="chat-list">
-              <router-link v-for="(conv, _) in sortedConvs" :key="conv.id" :to="'/conversations/' + conv.id" class="chat d-flex align-items-start gap-3 p-2">
+              <router-link v-for="(conv, index) in sortedConvs" :key="index" :to="'/conversations/' + conv.id" class="chat d-flex align-items-start gap-3 p-2">
                 <div class="chat-photo h-auto">
                   <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg' " alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
                 </div>

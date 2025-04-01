@@ -2,9 +2,10 @@
 import {RouterLink} from "vue-router";
 import ErrorMsg from "../components/ErrorMsg.vue";
 import MessageItem from "../components/MessageItem.vue";
+import NotificationMsg from "../components/NotificationMsg.vue";
 
 export default {
-  components: {RouterLink, ErrorMsg, MessageItem},
+  components: {RouterLink, ErrorMsg, MessageItem, NotificationMsg},
   data: function() {
     return {
       error: null,
@@ -19,8 +20,8 @@ export default {
       sentMessage: "",
       sentPhoto: null,
       replyTo: null,
-      messIDtoSent: "",
 
+      report: "",
       showChat: false,
       sentPhotoPreview: null,
       selectedFile: null,
@@ -55,13 +56,15 @@ export default {
       this.$router.push({path: "/"});
     },
 
-    handleShowChat({ showChat, messID }) {
-      this.showChat = showChat;
-      this.messIDtoSent = messID;
-    },
-
     handleReply(mess) {
       this.replyTo = mess;
+    },
+
+    handleForwardMessage({feedback}) {
+      this.report = feedback;
+      setTimeout(() => {
+        this.report = "";
+      }, 3000);
     },
 
     isNewDay(index) {
@@ -93,38 +96,6 @@ export default {
           chatBox.scrollTop = chatBox.scrollHeight;
         }
       })
-    },
-
-    handleChatClick(convID, messID) {
-      if (this.showChat) {
-        this.forwardMessage(convID, messID);
-        this.showChat = false;
-      } else {
-        this.$router.push({path: `/conversations/${convID}`});
-      }
-    },
-
-    async forwardMessage(convID, messID) {
-      try {
-        this.error = null;
-        await this.$axios.post(`/conversations/${this.currConvID}/messages/${messID}`,
-            {id: convID},
-            {headers: {Authorization: sessionStorage.getItem("ID")}}
-        );
-        this.$router.push({path: `/conversations/${convID}`});
-        this.messIDtoSent = 0;
-      } catch (e) {
-        if (e.response?.status === 400) {
-          this.error = e.response;
-        } else if (e.response?.status === 500) {
-          this.error = e.response.data
-        } else {
-          this.error = e.toString();
-        }
-      }
-      setTimeout(() => {
-        this.error = null;
-      }, 2500)
     },
 
     async sendMessage() {
@@ -239,6 +210,7 @@ export default {
         <div class="d-flex position-relative">
           <div class="d-flex position-absolute top-0 end-0 mt-3">
             <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
+            <NotificationMsg v-if="report" :message="report"></NotificationMsg>
           </div>
         </div>
 
@@ -247,7 +219,7 @@ export default {
             <p class="text-black">No conversation started yet...</p>
           </div>
           <div v-else class="chat-list h-100 d-flex flex-column">
-            <router-link v-for="(conv, index) in sortedConvs" :key="index" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2" @click="handleChatClick(conv.id, messIDtoSent)">
+            <router-link v-for="(conv, index) in sortedConvs" :key="index" :to="'/conversations/' + conv.id" class="chat-item d-flex align-items-center p-2">
               <img :src="conv.conv_photo || 'https://static.vecteezy.com/system/resources/previews/013/360/247/non_2x/default-avatar-photo-icon-social-media-profile-sign-symbol-vector.jpg'" alt="Conv photo" class="rounded-circle flex-shrink-0" width="50" height="50">
               <span class="ms-3">{{ conv.name }}</span>
             </router-link>
@@ -272,7 +244,7 @@ export default {
                   <div v-if="isNewDay(index)" class="text-lg-center fw-bold" style="color: gray; font-size: 14px; margin: 10px 0; display: flex; justify-content: center">
                     <span class="bg-white" style="padding: 5px 10px; border-radius: 10px"> {{ new Date(mess.timestamp).toLocaleDateString("it-IT", {weekday: 'long', month: 'long', day: 'numeric'}) }} </span>
                   </div>
-                  <MessageItem :message="mess" :myID="myID" @updateShowChat="handleShowChat" @updateReplyMessage="handleReply"/>
+                  <MessageItem :message="mess" :myID="myID" @updateReplyMessage="handleReply" @updateForward="handleForwardMessage"/>
                 </template>
               </div>
             </div>
@@ -336,7 +308,7 @@ export default {
 .messages-list {
   display: flex;
   justify-content: flex-start;
-  height: 90%;
+  height: calc(100% - 64px);
   flex-direction: column;
   overflow-y: auto;
   padding: 20px;

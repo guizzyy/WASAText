@@ -58,7 +58,7 @@ type AppDatabase interface {
 	GroupStillExists(uint64) error
 
 	GetConversations(uint64) ([]utilities.Conversation, error)
-	GetConversation(uint64, uint64, uint64) ([]utilities.Message, error)
+	GetConversation(utilities.Conversation, uint64, uint64) ([]utilities.Message, error)
 	GetReceivers(uint64, uint64) ([]uint64, error)
 	GetMembers(uint64, uint64) ([]utilities.User, error)
 	GetGroupPhoto(uint64) (string, error)
@@ -69,7 +69,7 @@ type AppDatabase interface {
 	GetMessageInfo(uint64) (utilities.Message, error)
 	AddMessage(*utilities.Message) error
 	RemoveMessage(uint64, uint64) error
-	GetLastMessage(uint64, uint64) (utilities.Message, error)
+	GetLastMessage(utilities.Conversation, uint64) (utilities.Message, error)
 	InsertStatus([]uint64, uint64, uint64) (string, error)
 	UpdateReceivedStatus(uint64) error
 	UpdateReadStatus(uint64, uint64) error
