@@ -15,12 +15,12 @@ export default {
       barConvs: {},
       currConvID: this.$route.params.convID,
       currConv: {},
-      lastMessageIDs: {},
       allConvMessages: {},
       sentMessage: "",
       sentPhoto: null,
       replyTo: null,
 
+      polling: null,
       report: "",
       showChat: false,
       sentPhotoPreview: null,
@@ -29,14 +29,19 @@ export default {
     }
   },
 
+  mounted() {
+    this.getConversation(this.currConvID);
+    this.startPolling();
+  },
+  beforeUnmount() {
+    this.stopPolling();
+  },
+
   watch : {
     "$route": {
       immediate: true,
       handler(to) {
         this.currConvID = to.params.convID;
-        if (!this.lastMessageIDs[this.currConvID]) {
-          this.lastMessageIDs[this.currConvID] = 0;
-        }
         this.getConversation(this.currConvID)
       },
     },
@@ -54,6 +59,15 @@ export default {
     logout() {
       sessionStorage.clear();
       this.$router.push({path: "/"});
+    },
+
+    startPolling() {
+      this.polling = setInterval(() => {
+        this.getConversation(this.currConvID);
+      }, 5000);
+    },
+    stopPolling() {
+      clearInterval(this.polling);
     },
 
     handleReply(mess) {
@@ -120,7 +134,6 @@ export default {
           }
         });
         this.allConvMessages[this.currConvID].push(response.data);
-        this.lastMessageIDs[this.currConvID] = response.data.id;
         this.sentMessage = "";
         this.sentPhoto = "";
         this.replyTo = null;
@@ -147,12 +160,11 @@ export default {
 
     async getConversation(convID) {
       this.error = null;
-      const lastID = this.lastMessageIDs[convID] || 0;
       try {
         if (!this.allConvMessages[convID]) {
           this.allConvMessages[convID] = [];
         }
-        let response = await this.$axios.get(`/conversations/${convID}/open?lastID=${lastID}`, {
+        let response = await this.$axios.get(`/conversations/${convID}/open`, {
           headers: {
             Authorization: sessionStorage.getItem("ID")
           }
@@ -160,7 +172,6 @@ export default {
         this.currConv = { ...response.data };
         let newMessages = Array.isArray(response.data.messages) ? response.data.messages.reverse() : [];
         if (newMessages.length > 0) {
-          this.lastMessageIDs[convID] = newMessages[newMessages.length - 1].id;
           this.allConvMessages[convID].push(...newMessages);
         }
         this.currConv.messages = this.allConvMessages[convID];

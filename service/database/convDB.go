@@ -56,7 +56,7 @@ func (db *appdbimpl) GetConversations(uID uint64) ([]utilities.Conversation, err
 	return convs, nil
 }
 
-func (db *appdbimpl) GetConversation(conv utilities.Conversation, uID uint64, lastID uint64) ([]utilities.Message, error) {
+func (db *appdbimpl) GetConversation(conv utilities.Conversation, uID uint64) ([]utilities.Message, error) {
 	//	Check if the conversation is in the database
 	if exists, err := db.IsConvInDatabase(conv.ID); err != nil {
 		return nil, fmt.Errorf("error checking if conversation is in database: %w", err)
@@ -95,10 +95,9 @@ func (db *appdbimpl) GetConversation(conv utilities.Conversation, uID uint64, la
 				WHERE
 				    u.id = m.sender_id AND
 				    m.conv_id = ? AND
-				    m.id > ? AND
 				    m.timestamp >= ?
 				ORDER BY m.timestamp DESC`
-	rows, err := db.c.Query(query, conv.ID, lastID, joinTimestamp)
+	rows, err := db.c.Query(query, conv.ID, joinTimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("error in getting messages in a conversation: %w", err)
 	}

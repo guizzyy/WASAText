@@ -18,6 +18,7 @@ export default {
       newConv: {},
       groupName: "",
 
+      polling: null,
       searchTimeout: null,
       showUserSearch: false,
       showGroupName: false,
@@ -31,6 +32,11 @@ export default {
       sessionStorage.removeItem("report");
       this.report = "";
     }, 3000);
+    this.startPolling();
+  },
+
+  beforeUnmount() {
+    this.stopPolling();
   },
 
   computed: {
@@ -45,6 +51,15 @@ export default {
     logout() {
       sessionStorage.clear();
       this.$router.push({path: "/"});
+    },
+
+    startPolling() {
+      this.polling = setInterval(() => {
+        this.getConversations();
+      }, 5000);
+    },
+    stopPolling() {
+      clearInterval(this.polling);
     },
 
     togglePopUp() {
