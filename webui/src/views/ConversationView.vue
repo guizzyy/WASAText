@@ -29,12 +29,12 @@ export default {
     }
   },
 
-  mounted() {
-    this.getConversation(this.currConvID);
-    this.startPolling();
-  },
-  beforeUnmount() {
-    this.stopPolling();
+  computed: {
+    sortedConvs() {
+      return Object.values(this.barConvs).sort((a, b) => {
+        return new Date(b.last_message.timestamp) - new Date(a.last_message.timestamp);
+      });
+    },
   },
 
   watch : {
@@ -47,12 +47,12 @@ export default {
     },
   },
 
-  computed: {
-    sortedConvs() {
-      return Object.values(this.barConvs).sort((a, b) => {
-        return new Date(b.last_message.timestamp) - new Date(a.last_message.timestamp);
-      });
-    },
+  mounted() {
+    this.getConversation(this.currConvID);
+    this.startPolling();
+  },
+  beforeUnmount() {
+    this.stopPolling();
   },
 
   methods: {
@@ -216,8 +216,8 @@ export default {
       <div class="row">
         <div class="d-flex position-relative">
           <div class="d-flex position-absolute top-0 end-0 mt-3">
-            <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
-            <NotificationMsg v-if="report" :message="report"></NotificationMsg>
+            <ErrorMsg v-if="error" :msg="error" />
+            <NotificationMsg v-if="report" :message="report" />
           </div>
         </div>
 
@@ -251,7 +251,7 @@ export default {
                   <div v-if="isNewDay(index)" class="text-lg-center fw-bold" style="color: gray; font-size: 14px; margin: 10px 0; display: flex; justify-content: center">
                     <span class="bg-white" style="padding: 5px 10px; border-radius: 10px"> {{ new Date(mess.timestamp).toLocaleDateString("it-IT", {weekday: 'long', month: 'long', day: 'numeric'}) }} </span>
                   </div>
-                  <MessageItem :message="mess" :myID="myID" @updateReplyMessage="handleReply" @updateForward="handleForwardMessage"/>
+                  <MessageItem :message="mess" :my-i-d="myID" @update-reply-message="handleReply" @update-forward="handleForwardMessage" />
                 </template>
               </div>
             </div>
@@ -270,23 +270,21 @@ export default {
                     </div>
                     <button class="remove-reply-btn" style="background: none; border: none; cursor: pointer; font-size: 16px; color: red" @click="replyTo = null">✖</button>
                   </div>
-                  <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input w-100" @keyup.enter="sendMessage" maxlength="250">
+                  <input v-model="sentMessage" type="text" placeholder="Type a message..." class="message-input w-100" maxlength="250" @keyup.enter="sendMessage">
                   <div class="position-absolute d-flex align-items-center cursor-pointer text-secondary attachment">
-                    <input type="file" accept="image/*" @change="onFileChange" class="position-absolute w-100 h-100 file-input">
-                    <i class="fas fa-paperclip paper-clip"></i>
+                    <input type="file" accept="image/*" class="position-absolute w-100 h-100 file-input" @change="onFileChange">
+                    <i class="fas fa-paperclip paper-clip" />
                   </div>
                 </div>
-                <button @click="sendMessage" class="send-button">
+                <button class="send-button" @click="sendMessage">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
                   </svg>
                 </button>
               </div>
             </div>
           </div>
-
-
         </main>
       </div>
     </div>

@@ -1,6 +1,13 @@
 <script>
 
 export default {
+
+  props: {
+    message: Object,
+    myID: Number,
+  },
+
+  emits: ["updateReplyMessage", "updateForward"],
   data: function () {
     return {
       emojis: [],
@@ -16,13 +23,6 @@ export default {
       isForwarded: false,
     }
   },
-
-  props: {
-    message: Object,
-    myID: Number,
-  },
-
-  emits: ["updateReplyMessage", "updateForward"],
 
   computed: {
     formattedTimestamp() {
@@ -218,12 +218,12 @@ export default {
     <div class="mess-bubble">
       <div v-if="message.reply_photo || message.reply_text" class="flex-lg-row">
         <strong> Reply to: </strong>
-        <i v-if="message.reply_photo" class="fas fa-camera"></i>
+        <i v-if="message.reply_photo" class="fas fa-camera" />
         <p v-if="message.reply_text"> {{ message.reply_text }} </p>
       </div>
       <div v-if="message.is_forwarded" style="font-size: 10px; color: black"> forwarded </div>
       <div v-if="message.sender.id !== myID">
-        <strong>{{message.sender.username}}</strong>
+        <strong>{{ message.sender.username }}</strong>
       </div>
       <div v-if="message.photo">
         <img :src="message.photo" alt="Message photo" class="mess-photo">
@@ -233,7 +233,7 @@ export default {
       <div class="mess-info">
         <span>{{ formattedTimestamp }}</span>
 
-        <span class="status" v-if="message.sender.id === myID">
+        <span v-if="message.sender.id === myID" class="status">
           <template v-if="message.status === 'Read'">
             <i class="check-mark read">✔✔</i>
           </template>
@@ -244,12 +244,12 @@ export default {
       </div>
 
       <div class="menu-container position-absolute" style="top: 5px; right: 5px;">
-        <i class="menu-icon fas fa-ellipsis-v" @click="toggleMenu" style="cursor: pointer; color: white; font-size: 1.2rem;"></i>
+        <i class="menu-icon fas fa-ellipsis-v" style="cursor: pointer; color: white; font-size: 1.2rem;" @click="toggleMenu" />
         <div v-if="showMenu" class="menu-popup">
-          <i class="action-icon fas fa-mail-reply" @click="toggleReplySelect" title="Reply"></i>
-          <i class="action-icon fas fa-paper-plane" @click="toggleForward" title="Forward"></i>
-          <i v-if="message.sender.id === myID" class="action-icon fas fa-trash" @click="toggleMessage" title="Delete"></i>
-          <i class="action-icon fas fa-angry" @click="toggleEmojiSelect" title="React"></i>
+          <i class="action-icon fas fa-mail-reply" title="Reply" @click="toggleReplySelect" />
+          <i class="action-icon fas fa-paper-plane" title="Forward" @click="toggleForward" />
+          <i v-if="message.sender.id === myID" class="action-icon fas fa-trash" title="Delete" @click="toggleMessage" />
+          <i class="action-icon fas fa-angry" title="React" @click="toggleEmojiSelect" />
         </div>
       </div>
 
@@ -269,9 +269,9 @@ export default {
           <div v-for="emoji in emojis" :key="emoji.emoji" class="reaction-item">
             {{ emoji.emoji }} - {{ emoji.user.username }}
             <button
-                v-if="emoji.user.id === myID"
-                class="delete-reaction-btn"
-                @click="uncommentMessage"
+              v-if="emoji.user.id === myID"
+              class="delete-reaction-btn"
+              @click="uncommentMessage"
             >
               ❌
             </button>
@@ -296,7 +296,7 @@ export default {
 
     <div v-if="showUserSearch" class="overlay">
       <div class="search-box position-relative">
-        <input v-model="newUser" @input="searchUsers" placeholder="Forward the message to..." />
+        <input v-model="newUser" placeholder="Forward the message to..." @input="searchUsers">
         <ul>
           <li v-for="user in searchResults" :key="user.id" @click="forwardMessage(user.username)">
             {{ user.username }}

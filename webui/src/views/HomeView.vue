@@ -26,6 +26,14 @@ export default {
     }
   },
 
+  computed: {
+    sortedConvs() {
+      return Object.values(this.convs).sort((a, b) => {
+        return new Date(b.last_message.timestamp) - new Date(a.last_message.timestamp);
+      });
+    }
+  },
+
   mounted() {
     this.getConversations();
     setTimeout(() => {
@@ -37,14 +45,6 @@ export default {
 
   beforeUnmount() {
     this.stopPolling();
-  },
-
-  computed: {
-    sortedConvs() {
-      return Object.values(this.convs).sort((a, b) => {
-        return new Date(b.last_message.timestamp) - new Date(a.last_message.timestamp);
-      });
-    }
   },
 
   methods: {
@@ -215,7 +215,6 @@ export default {
 </script>
 
 <template>
-
   <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
     <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
 
@@ -231,7 +230,7 @@ export default {
         </router-link>
       </button>
       <button class="icon-btn" aria-label="Logout" @click="logout">
-          Logout
+        Logout
       </button>
       <div>
         <img :src="photo" alt="Stored image" class="profile-pic-header">
@@ -242,8 +241,8 @@ export default {
   <div class="container-fluid">
     <div class="d-flex position-relative">
       <div class="d-flex position-absolute top-0 end-0 mt-3">
-        <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
-        <NotificationMsg v-if="report" :message="report"></NotificationMsg>
+        <ErrorMsg v-if="error" :msg="error" />
+        <NotificationMsg v-if="report" :message="report" />
       </div>
     </div>
 
@@ -266,7 +265,7 @@ export default {
                   </div>
                   <div class="d-flex justify-content-between align-items-center">
                     <span class="d-flex align-items-center flex-grow-1 text-truncate">
-                      <i v-if="conv.last_message.id && conv.last_message.photo" class="bi bi-camera-fill me-1"></i>
+                      <i v-if="conv.last_message.id && conv.last_message.photo" class="bi bi-camera-fill me-1" />
                       <p class="text-muted text-truncate mb-0">{{ conv.last_message.id ? conv.last_message.text : "No messages sent yet..." }}</p>
                     </span>
                   </div>
@@ -276,7 +275,7 @@ export default {
           </div>
 
           <div class="new-chat-button" @click="togglePopUp">
-            <svg class="feather" width="24" height="24"><use href="/feather-sprite-v4.29.0.svg#message-circle"/></svg>
+            <svg class="feather" width="24" height="24"><use href="/feather-sprite-v4.29.0.svg#message-circle" /></svg>
             <span style="font-size: 30px; position: absolute; justify-content: center; font-weight: bold; bottom: .25rem">+</span>
           </div>
 
@@ -287,7 +286,7 @@ export default {
 
           <div v-if="showUserSearch" class="overlay">
             <div class="search-box position-relative">
-              <input v-model="newUser" @input="searchUsers" placeholder="Search for a user..." />
+              <input v-model="newUser" placeholder="Search for a user..." @input="searchUsers">
               <ul>
                 <li v-for="user in searchResults" :key="user.id" @click="startConversation(user)">
                   {{ user.username }}
@@ -300,7 +299,7 @@ export default {
           <div v-if="showGroupName" class="overlay">
             <div class="search-box position-relative">
               <input v-model="groupName" placeholder="Insert a name for the group...">
-              <button @click="createGroup" class=""> Create group </button>
+              <button class="" @click="createGroup"> Create group </button>
               <button @click="closeGroupNameBar"> Cancel </button>
             </div>
           </div>
@@ -310,8 +309,6 @@ export default {
       </main>
     </div>
   </div>
-
-
 </template>
 
 <style>

@@ -253,29 +253,33 @@ export default {
         </div>
       </div>
     </header>
-    <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
-    <NotificationMsg v-if="report" :message="report"></NotificationMsg>
+    <ErrorMsg v-if="error" :msg="error" />
+    <NotificationMsg v-if="report" :message="report" />
 
     <div class="w-75 h-auto align-items-center">
       <div class="text-white">
         <div class="position-absolute" style="top: 75px; left: 15px; z-index: 10;">
           <router-link :to="'/conversations/' + currConvID" class="btn btn-link text-white">
-            <i class="fas fa-arrow-left fa-3x"></i>
+            <i class="fas fa-arrow-left fa-3x" />
           </router-link>
         </div>
       </div>
 
-      <div class="text-center position-absolute d-flex flex-column p-3 rounded-3 gap-3"
-           style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
+      <div
+        class="text-center position-absolute d-flex flex-column p-3 rounded-3 gap-3"
+        style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9"
+      >
         <div class="d-flex align-items-center justify-content-between w-100">
           <div class="d-flex align-items-center">
-            <img :src="currGroup.photo || 'https://developer.jboss.org/images/jive-sgroup-default-portrait-large.png'"
-                 alt="Profile pic" class="profile-pic-header me-3">
+            <img
+              :src="currGroup.photo || 'https://developer.jboss.org/images/jive-sgroup-default-portrait-large.png'"
+              alt="Profile pic" class="profile-pic-header me-3"
+            >
             <strong style="font-size: large; color: black"> {{ currGroup.name }} </strong>
           </div>
           <div>
-            <i class="fas fa-user-plus text-primary me-3" @click="openSearchBar" style="cursor: pointer"></i>
-            <i class="fas fa-sign-out-alt text-danger" @click="leaveGroup" style="cursor: pointer"></i>
+            <i class="fas fa-user-plus text-primary me-3" style="cursor: pointer" @click="openSearchBar" />
+            <i class="fas fa-sign-out-alt text-danger" style="cursor: pointer" @click="leaveGroup" />
           </div>
         </div>
 
@@ -299,20 +303,20 @@ export default {
     <div v-if="showPhotoBar" class="overlay">
       <div class="photo-box position-relative">
         <h3>Upload Profile Photo</h3>
-        <div v-if="this.newPhoto" class="image-preview">
-          <img :src="this.newPhoto" alt="Preview" />
+        <div v-if="newPhoto" class="image-preview">
+          <img :src="newPhoto" alt="Preview">
         </div>
-        <input type="file" @change="onFileChange" accept="image/*" />
-        <button @click="setGroupPhoto" :disabled="!selectedFile">Upload</button>
+        <input type="file" accept="image/*" @change="onFileChange">
+        <button :disabled="!selectedFile" @click="setGroupPhoto">Upload</button>
         <button @click="closePhotoBar">Cancel</button>
       </div>
     </div>
 
     <div v-if="showUserSearch" class="overlay">
       <div class="search-box position-relative">
-        <input v-model="newMember" @input="searchUsers" placeholder="Search for a user to add..." />
+        <input v-model="newMember" placeholder="Search for a user to add..." @input="searchUsers">
         <ul>
-          <li class="mb-0" v-for="user in searchResults" :key="user.id" @click="addToGroup(user)">
+          <li v-for="user in searchResults" :key="user.id" class="mb-0" @click="addToGroup(user)">
             {{ user.username }}
           </li>
         </ul>
@@ -327,7 +331,6 @@ export default {
       </div>
     </div>
   </div>
-
 </template>
 
 <style>

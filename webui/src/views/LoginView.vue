@@ -46,10 +46,9 @@
 </script>
 
 <template>
-
   <div class="d-flex position-relative">
     <div class="d-flex position-absolute top-0 end-0 mt-3" style="padding-right: 10px">
-      <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
+      <ErrorMsg v-if="error" :msg="error" />
     </div>
   </div>
 
@@ -60,24 +59,24 @@
   </div>
 
   <div class="d-flex justify-content-center position-absolute" style="top: 40%; width: 100%; height: auto;">
-    <h2 class="h2 text-center" v-if="username"> {{ username }}</h2>
+    <h2 v-if="username" class="h2 text-center"> {{ username }}</h2>
   </div>
 
   <div class="d-flex justify-content-center position-absolute" style="top: 52%; left: 0; width: 100%; height: auto; padding-top: 1.5rem">
-    <form @submit="doLogin" class="mt-6">
+    <form class="mt-6" @submit="doLogin">
       <div class="flex items-center justify-center min-h-screen">
-        <input id="username-given" v-model="username" type="text" placeholder="Enter your username" autocomplete="off" maxlength="16"
-               class="w-full p-3 rounded-md text-black border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 form-control">
+        <input
+          id="username-given" v-model="username" type="text" placeholder="Enter your username" autocomplete="off" maxlength="16"
+          class="w-full p-3 rounded-md text-black border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 form-control"
+        >
         <div class="text-center" style="padding-top: 1.5rem">
           <button type="submit">
-              <span>Start Chatting</span>
+            <span>Start Chatting</span>
           </button>
         </div>
       </div>
     </form>
   </div>
-
-
 </template>
 
 <style>

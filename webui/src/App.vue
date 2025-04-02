@@ -11,7 +11,6 @@ export default {}
       <RouterView />
     </main>
   </header>
-
 </template>
 
 <style>

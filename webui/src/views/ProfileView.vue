@@ -117,7 +117,6 @@ export default {
 </script>
 
 <template>
-
   <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-1 shadow">
     <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-5">WASA Text</a>
 
@@ -140,18 +139,20 @@ export default {
       </div>
     </div>
   </header>
-  <ErrorMsg v-if="error" :msg="error"></ErrorMsg>
-  <NotificationMsg v-if="report" :message="report"></NotificationMsg>
+  <ErrorMsg v-if="error" :msg="error" />
+  <NotificationMsg v-if="report" :message="report" />
 
   <div class="w-75 h-auto align-items-center">
-    <div class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3 rounded-3"
-         style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9">
+    <div
+      class="text-center position-absolute d-flex flex-column justify-content-between align-items-center p-3 rounded-3"
+      style="top: 10%; bottom: 10%; width: 30%; height: 80%; left: 35%; right: 35%; background-color: white; opacity: 0.9"
+    >
       <div>
-        <img :src="this.photo" alt="Profile pic" class="profile-pic">
+        <img :src="photo" alt="Profile pic" class="profile-pic">
       </div>
 
       <div style="flex-grow: 1; color: black">
-        <strong style="font-size: large"> {{this.username}} </strong>
+        <strong style="font-size: large"> {{ username }} </strong>
       </div>
 
 
@@ -163,24 +164,23 @@ export default {
       <div v-if="showUsernameBar" class="overlay">
         <div class="username-box position-relative">
           <input v-model="newUsername" placeholder="Enter a new username..." @keyup.enter="setMyUserName">
-          <button @click="closeUsernameBar" class="edit-button">Cancel</button>
+          <button class="edit-button" @click="closeUsernameBar">Cancel</button>
         </div>
       </div>
 
       <div v-if="showPhotoBar" class="overlay">
         <div class="photo-box position-relative">
           <h3>Upload Profile Photo</h3>
-          <div v-if="this.newPhoto" class="image-preview">
-            <img :src="this.newPhoto" alt="Preview" />
+          <div v-if="newPhoto" class="image-preview">
+            <img :src="newPhoto" alt="Preview">
           </div>
-          <input type="file" @change="onFileChange" accept="image/*" />
-          <button @click="setMyPhoto" :disabled="!selectedFile" class="edit-button">Upload</button>
-          <button @click="closePhotoBar" class="edit-button">Cancel</button>
+          <input type="file" accept="image/*" @change="onFileChange">
+          <button :disabled="!selectedFile" class="edit-button" @click="setMyPhoto">Upload</button>
+          <button class="edit-button" @click="closePhotoBar">Cancel</button>
         </div>
       </div>
     </div>
   </div>
-
 </template>
 
 <style scoped>
