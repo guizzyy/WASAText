@@ -1,4 +1,4 @@
-FROM node:lts AS builder
+FROM node:lts as builder
 
 ### Copy Vue.js code
 WORKDIR /app
@@ -9,6 +9,7 @@ WORKDIR /app/webui
 RUN yarn install
 RUN yarn run build-prod
 
+EXPOSE 80
 
 ### Create final container
 FROM nginx:stable

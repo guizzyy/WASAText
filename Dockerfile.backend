@@ -1,6 +1,6 @@
-FROM golang:1.19.1 AS builder
+FROM golang:1.17 AS builder
 
-# Copy go code
+# Set the working directory inside the container
 WORKDIR /src/
 COPY . .
 
