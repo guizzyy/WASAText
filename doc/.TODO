@@ -1,11 +1,19 @@
-***TODO***: change disposition of go files for code legibility
 ***TODO***: frontend
+    - change forward message
+    - reply to a message operation
 
 // Things to change once you get your degree
-***TODO***: change the photo path names with user ids (maybe directory)
-***TODO***: delete not only your messages (it still display in another account)
-***TODO***: check correspond between token and token in url
-***TODO***: implement founder of the group (has more permissions)
-***TODO***: manage leave group (expel other members)
-***TODO***: create new errors (user not in conv, message not in conv, etc..)
-***TODO***: delete redundant check for errors
+***TODO***: backend
+    - change the photo path names with user ids (maybe directory)
+    - delete not only your messages (it still display in another account)
+    - check correspond between token and token in url
+    - implement founder of the group (has more permissions)
+    - manage leave group (expel other members)
+    - create new errors (user not in conv, message not in conv, etc..)
+    - delete redundant check for errors
+    - message attachments could be documents or audio
+
+***TODO***: frontend
+    - emoji picker (all available)
+    - stored data in groups and chats (attachment to messages)
+

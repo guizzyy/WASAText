@@ -44,7 +44,19 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, params ht
 	}
 	if mPhoto != "" {
 		uDir := strconv.FormatUint(mess.Sender.ID, 10)
-		filePath := fmt.Sprintf("./uploads/%s/%s/%s", uDir, "sent", mPhoto)
+		if _, err := os.Stat("./tmp/uploads/" + uDir + "/sent"); os.IsNotExist(err) {
+			err = os.MkdirAll("./tmp/uploads/"+uDir+"/sent", 0755)
+			if err != nil {
+				context.Logger.WithError(err).Error("can't create the folder")
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		} else if err != nil {
+			context.Logger.WithError(err).Error("can't get the folder")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		filePath := fmt.Sprintf("./tmp/uploads/%s/%s/%s", uDir, "sent", mPhoto)
 		dst, err := os.Create(filePath)
 		if err != nil {
 			context.Logger.WithError(err).Error("Error during create file path")

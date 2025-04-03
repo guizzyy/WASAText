@@ -80,6 +80,12 @@ func run() error {
 
 	logger.Infof("application initializing")
 
+	// Create the photo path
+	if err := os.MkdirAll(cfg.PhotoPath, 0755); err != nil {
+		logger.WithError(err).Error("can't create the photo folder")
+		return fmt.Errorf("can't create photo directory: %w", err)
+	}
+
 	// Start Database
 	logger.Println("initializing database support")
 	dbconn, err := sql.Open("sqlite3", cfg.DB.Filename)
@@ -128,19 +134,6 @@ func run() error {
 
 	// Apply CORS policy
 	router = applyCORSHandler(router)
-
-	// Create the directory to handle photo uploads
-	photosDir := "./uploads"
-	if err = os.MkdirAll(photosDir, os.ModePerm); err != nil {
-		logger.WithError(err).Error("error creating photos directory")
-		return fmt.Errorf("creating photos directory: %w", err)
-	}
-
-	groupsDir := "./uploads/groups"
-	if err = os.MkdirAll(groupsDir, os.ModePerm); err != nil {
-		logger.WithError(err).Error("error creating photos directory")
-		return fmt.Errorf("creating photos directory: %w", err)
-	}
 
 	// Create the API server
 	apiserver := http.Server{

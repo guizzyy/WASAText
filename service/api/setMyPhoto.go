@@ -39,6 +39,19 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		return
 	}
 
+	if _, err := os.Stat("./tmp/uploads/" + strconv.FormatUint(loggedID, 10)); os.IsNotExist(err) {
+		err = os.MkdirAll("./tmp/uploads/"+strconv.FormatUint(loggedID, 10), 0755)
+		if err != nil {
+			context.Logger.WithError(err).Error("can't create the folder")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	} else if err != nil {
+		context.Logger.WithError(err).Error("can't get the folder")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	// Get the photo from the request body and save it in the correct folder
 	mainDir := strconv.FormatUint(loggedID, 10)
 	fileName, file, err := rt.GetFilePath(w, r, context)
@@ -47,7 +60,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, params htt
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	filePath := fmt.Sprintf("./uploads/%s/%s", mainDir, fileName)
+	filePath := fmt.Sprintf("./tmp/uploads/%s/%s", mainDir, fileName)
 	dst, err := os.Create(filePath)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during create file path")

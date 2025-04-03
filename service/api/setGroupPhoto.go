@@ -35,6 +35,19 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		return
 	}
 
+	if _, err := os.Stat("./tmp/uploads/groups"); os.IsNotExist(err) {
+		err = os.MkdirAll("./tmp/uploads/groups", 0755)
+		if err != nil {
+			context.Logger.WithError(err).Error("can't create the folder")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	} else if err != nil {
+		context.Logger.WithError(err).Error("can't get the folder")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	// Delete the previous group photo if there was an existing one
 	currPhoto, err := rt.db.GetGroupPhoto(group.ID)
 	if err != nil {
@@ -57,7 +70,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, params 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	filePath := fmt.Sprintf("./uploads/%s/%s", "groups", gPhoto)
+	filePath := fmt.Sprintf("./tmp/uploads/%s/%s", "groups", gPhoto)
 	dst, err := os.Create(filePath)
 	if err != nil {
 		context.Logger.WithError(err).Error("Error during create file path")

@@ -157,25 +157,6 @@ func (rt *_router) DeleteGroupPhoto(oldPhoto string) error {
 	return nil
 }
 
-func (rt *_router) CreateUserDir(uID uint64, context reqcontext.RequestContext, w http.ResponseWriter) error {
-	// Create the directory with the photos managed from the user
-	directoryDir := filepath.Join("./uploads", fmt.Sprintf("%d", uID))
-	if err := os.MkdirAll(directoryDir, os.ModePerm); err != nil {
-		context.Logger.WithError(err).Error("error during CreateUserDir user directory")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return err
-	}
-
-	// Create the directory with the photos sent
-	photosSentDir := filepath.Join(directoryDir, "sent")
-	if err := os.MkdirAll(photosSentDir, os.ModePerm); err != nil {
-		context.Logger.WithError(err).Error("error during CreateUserDir photos sent directory")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return err
-	}
-	return nil
-}
-
 func (rt *_router) GetFile(url string) (string, error) {
 	if url == "" {
 		return "", nil

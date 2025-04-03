@@ -27,6 +27,7 @@ type WebAPIConfiguration struct {
 	DB    struct {
 		Filename string `conf:"default:/tmp/dbWASA.db"`
 	}
+	PhotoPath string `conf:"default:/tmp/uploads/"`
 }
 
 // loadConfiguration creates a WebAPIConfiguration starting from flags, environment variables and configuration file.

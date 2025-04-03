@@ -51,11 +51,6 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, params httpro
 		response.UserLogged = userLog
 	} else {
 		// The user is new
-		if err = rt.CreateUserDir(userLog.ID, context, w); err != nil {
-			context.Logger.WithError(err).Error("error during create user dir")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
 		w.WriteHeader(http.StatusCreated)
 		response.Message = "User created successfully"
 		response.UserLogged = userLog
