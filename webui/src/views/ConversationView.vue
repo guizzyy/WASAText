@@ -64,7 +64,7 @@ export default {
     startPolling() {
       this.polling = setInterval(() => {
         this.getConversation(this.currConvID);
-      }, 5000);
+      }, 4000);
     },
     stopPolling() {
       clearInterval(this.polling);
@@ -176,7 +176,6 @@ export default {
             Authorization: sessionStorage.getItem("ID")
           }
         })).data;
-        this.scrollToBottom();
       } catch (e) {
         if (e.response?.status === 400) {
           this.error = e.response.data;

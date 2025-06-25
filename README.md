@@ -1,25 +1,26 @@
-# Fantastic coffee (decaffeinated)
 
-This repository contains the basic structure for [Web and Software Architecture](http://gamificationlab.uniroma1.it/en/wasa/) homework project.
-It has been described in class.
+## WASAtext
 
-"Fantastic coffee (decaffeinated)" is a simplified version for the WASA course, not suitable for a production environment.
-The full version can be found in the "Fantastic Coffee" repository.
+Connect with your friends effortlessly using WASAText! Send and receive messages, whether one-on-one
+or in groups, all from the convenience of your PC. Enjoy seamless conversations with text or GIFs and
+easily stay in touch through your private chats or group discussions.  
+This project was created with the course of **Web and Software Architecture** from the Department of Computer Science at [La Sapienza University](https://www.di.uniroma1.it/) of Rome.  
+It is an **open-source** project, open to anyone who wants to change, improving, or fixing the current implementation of the code. Feel free to send me your ideas or your comments about the project. 
 
 ## Project structure
 
-* `cmd/` contains all executables; Go programs here should only do "executable-stuff", like reading options from the CLI/env, etc.
+* `cmd/` contains all executables
 	* `cmd/healthcheck` is an example of a daemon for checking the health of servers daemons; useful when the hypervisor is not providing HTTP readiness/liveness probes (e.g., Docker engine)
-	* `cmd/webapi` contains an example of a web API server daemon
+	* `cmd/webapi` contains a web API server daemon
 * `demo/` contains a demo config file
-* `doc/` contains the documentation (usually, for APIs, this means an OpenAPI file)
-* `service/` has all packages for implementing project-specific functionalities
-	* `service/api` contains an example of an API server
-	* `service/globaltime` contains a wrapper package for `time.Time` (useful in unit testing)
+* `doc/` contains the documentation, in this case an OpenAPI specification for the project
+* `service/` has all packages for implementing the project functionalities
+	* `service/api` contains all the function which describe the API server
+	* `service/globaltime` contains a wrapper package for `time.Time`
 * `vendor/` is managed by Go, and contains a copy of all dependencies
-* `webui/` is an example of a web frontend in Vue.js; it includes:
+* `webui/` contains the web frontend in Vue.js; it includes:
 	* Bootstrap JavaScript framework
-	* a customized version of "Bootstrap dashboard" template
+	* a customized version of the "Bootstrap dashboard" template
 	* feather icons as SVG
 	* Go code for release embedding
 
@@ -41,7 +42,7 @@ This repository uses `yarn` and a vendoring technique that exploits the ["Offlin
 
 You should commit the files inside the `.yarn` directory.
 
-## How to set up a new project from this template
+## How to set up a new version of the project from this template
 
 You need to:
 
@@ -87,15 +88,13 @@ If you want to launch the WebUI, open a new tab and launch:
 yarn run dev
 ```
 
-## How to build for production / homework delivery
+## How to build for production
 
 ```shell
 ./open-node.sh
 # (here you're inside the container)
 yarn run build-prod
 ```
-
-For "Web and Software Architecture" students: before committing and pushing your work for grading, please read the section below named "My build works when I use `yarn run dev`, however there is a Javascript crash in production/grading"
 
 ## Known issues
 

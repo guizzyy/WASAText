@@ -1,11 +1,10 @@
 openapi: 3.0.3
 info:
   title: WASAText
-  # TO DO: CHANGE THE DESCRIPTION
   description: |-
     This OpenAPI document describes the application of a software which allows people to stay in touch with other users of the system.
     With the inspiration of `WhatsApp`, this app goals is to create an
-    open-source one with less security in it
+    open-source one with less security in it, but focusing on the legibility for the user
   version: "1"
   contact:
     name: Diego Antonio Guzman Aguirre
